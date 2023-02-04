@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:background="?attr/backgroundColor"
+    tools:context=".fragments.LoginFragment">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        app:cardBackgroundColor="?attr/colorPrimary"
+        app:cardCornerRadius="50dp"
+        android:layout_margin="25dp"
+        app:cardElevation="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/sign_in"
+                android:layout_marginTop="25dp"
+                android:textStyle="bold"
+                android:textColor="?attr/backgroundColor"
+                android:textSize="30sp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/googleLogin"
+                android:layout_margin="25dp"
+                app:cardCornerRadius="25dp"
+                app:cardBackgroundColor="?attr/colorPrimary"
+                app:strokeColor="?attr/backgroundColor"
+                app:strokeWidth="3dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="@string/sign_in_with"
+                        android:textStyle="bold"
+                        android:textColor="?attr/backgroundColor"
+                        android:textSize="20sp" />
+                    <ImageView
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:src="@drawable/googleg_standard_color_18"
+                        android:layout_marginTop="25dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginBottom="25dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="?attr/backgroundColor"
+    tools:context=".fragments.HomeFragment">
+
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" >
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/welcomeCard"
+                app:cardBackgroundColor="?attr/backgroundColor"
+                app:cardCornerRadius="25dp"
+                app:strokeWidth="3dp"
+                android:layout_margin="25dp"
+                app:strokeColor="?attr/colorPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:layout_weight="1"
+                        android:paddingStart="25dp"
+                        android:paddingVertical="15dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp"
+                            android:text="Welcome" />
+
+                        <TextView
+                            android:id="@+id/textname"
+                            android:layout_width="match_parent"
+                            android:textSize="22sp"
+                            android:textColor="?attr/colorPrimary"
+                            android:layout_height="wrap_content"
+                            android:text="" />
+                        <TextView
+                            android:id="@+id/hash"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="15sp"
+                            android:typeface="monospace"
+                            android:textColor="?attr/colorPrimary"
+                            android:text="Identity hash" />
+                    </LinearLayout>
+                    <ImageView
+                        android:id="@+id/signOut"
+                        android:layout_weight="0"
+                        android:src="@drawable/baseline_logout_24"
+                        android:layout_width="30dp"
+                        android:layout_marginEnd="25dp"
+                        android:layout_height="match_parent"
+                        app:tint="?attr/colorPrimary" />
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/permissionCard"
+                app:cardBackgroundColor="?attr/backgroundColor"
+                app:cardCornerRadius="25dp"
+                app:strokeWidth="3dp"
+                android:layout_marginHorizontal="25dp"
+                app:strokeColor="?attr/colorPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:layout_weight="1"
+                    android:padding="25dp"
+                    android:paddingVertical="15dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="10dp"
+                        android:text="Necessary permissions -" />
+
+                    <Switch
+                        android:id="@+id/locPermission"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Location (for wifi access)" />
+
+                    <Switch
+                        android:id="@+id/bluetoothPermission"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Bluetooth" />
+
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/networkCard"
+                app:cardBackgroundColor="?attr/backgroundColor"
+                app:cardCornerRadius="25dp"
+                app:strokeWidth="3dp"
+                android:layout_marginHorizontal="25dp"
+                app:strokeColor="?attr/colorPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:layout_weight="1"
+                    android:padding="25dp"
+                    android:paddingVertical="15dp"
+                    android:orientation="vertical">
+
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp"
+                            android:layout_weight="1"
+                            android:id="@+id/networkText"
+                            android:layout_marginBottom="10dp"
+                            android:text="Network - Loading..." />
+                        <TextView
+                            android:id="@+id/killSwitch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:gravity="end"
+                            android:layout_marginBottom="10dp"
+                            android:text="STOP   " />
+                    </LinearLayout>
+
+                    <Switch
+                        android:id="@+id/background"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Run in Background" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mediaCard"
+                app:cardBackgroundColor="?attr/backgroundColor"
+                app:cardCornerRadius="25dp"
+                app:strokeWidth="3dp"
+                android:layout_marginTop="25dp"
+                android:layout_marginHorizontal="25dp"
+                app:strokeColor="?attr/colorPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:layout_weight="1"
+                    android:padding="25dp"
+                    android:paddingVertical="15dp"
+                    android:orientation="vertical">
+
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp"
+                            android:layout_weight="1"
+                            android:text="Media Sync mode - " />
+                    </LinearLayout>
+
+                    <RadioGroup
+                        android:id="@+id/mediaRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" >
+
+                        <RadioButton
+                            android:id="@+id/radioSync"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Sync (requires manual playback)" />
+                        <RadioButton
+                            android:id="@+id/radioStream"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Stream (Android Version >= 10)" />
+                    </RadioGroup>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>
