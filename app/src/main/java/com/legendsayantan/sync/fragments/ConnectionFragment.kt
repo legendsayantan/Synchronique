@@ -8,12 +8,15 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.provider.Settings
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ListView
+import android.widget.Toast
+import androidx.core.app.NotificationManagerCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.android.gms.tasks.Tasks
@@ -135,6 +138,17 @@ class ConnectionFragment : Fragment() {
                     "Sync",
                     ArrayList(),
                     { ints: ArrayList<Int>, appDialog: AppDialog ->
+                        if (!NotificationManagerCompat.getEnabledListenerPackages(requireActivity())
+                                .contains(requireActivity().packageName)
+                        ) {
+                            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                            Toast.makeText(
+                                requireContext(),
+                                "Please enable notification access for ${getString(R.string.app_name)}",
+                                Toast.LENGTH_SHORT
+                            ).show();
+                            return@AppDialog
+                        }
                         SingularConnectionService.connectionInitiated = { appDialog.hide() }
                         SingularConnectionService.connectionUpdate = ::updateConnection
                         SingularConnectionService.ENDPOINT_ID = endpoint.endpointId

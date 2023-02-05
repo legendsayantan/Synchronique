@@ -16,10 +16,14 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
             if(packet.payloadType == PayloadType.MEDIA_PACKET){
                 packet.data = Gson().fromJson(Gson().toJson(packet.data), MediaPacket::class.java)
             }
+            if(packet.payloadType == PayloadType.AUDIO_PACKET){
+                packet.data = Gson().fromJson(Gson().toJson(packet.data), Int::class.java)
+            }
             return packet
         }
         enum class PayloadType{
             MEDIA_PACKET,
+            AUDIO_PACKET,
             DISCONNECT,
         }
         fun toEncBytes(data: PayloadPacket): ByteArray {

@@ -1,4 +1,3 @@
-
 package com.legendsayantan.sync.services
 
 import EncryptionManager
@@ -9,6 +8,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.media.AudioFormat
+import android.os.Build
 import android.os.IBinder
 import android.widget.Toast
 import com.google.android.gms.nearby.Nearby
@@ -18,6 +19,8 @@ import com.legendsayantan.sync.R
 import com.legendsayantan.sync.interfaces.MediaPacket
 import com.legendsayantan.sync.interfaces.PayloadPacket
 import kotlin.collections.ArrayList
+import kotlin.math.E
+import kotlin.system.exitProcess
 
 class SingularConnectionService : Service() {
 
@@ -66,9 +69,9 @@ class SingularConnectionService : Service() {
         notificationManager.createNotificationChannel(notificationChannel)
         println("Endpoint ID: $ENDPOINT_ID")
         println("Endpoint Name: $ENDPOINT_NAME")
-        if(CONNECTION_MODE==ConnectionMode.INITIATE){
+        if (CONNECTION_MODE == ConnectionMode.INITIATE) {
             initiateConnection()
-        }else{
+        } else {
             acceptConnection()
         }
     }
@@ -77,44 +80,55 @@ class SingularConnectionService : Service() {
         Nearby.getConnectionsClient(this)
             .acceptConnection(ENDPOINT_ID, object : PayloadCallback() {
                 override fun onPayloadReceived(p0: String, p1: Payload) {
-                    if(p1.type==Payload.Type.BYTES && p1.asBytes()!=null){
+                    if (p1.type == Payload.Type.BYTES && p1.asBytes() != null) {
                         println("--------------- PAYLOAD -----------------")
                         println(String(p1.asBytes()!!))
-                        Toast.makeText(applicationContext,"payload",Toast.LENGTH_SHORT).show()
-                        if(PayloadPacket.fromEncBytes(p1.asBytes()!!).payloadType==PayloadPacket.Companion.PayloadType.DISCONNECT){
+                        Toast.makeText(applicationContext, "payload", Toast.LENGTH_SHORT).show()
+                        if (PayloadPacket.fromEncBytes(p1.asBytes()!!).payloadType == PayloadPacket.Companion.PayloadType.DISCONNECT) {
                             CONNECTED = false
                             connectionUpdate()
-                            Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(ENDPOINT_ID)
+                            Nearby.getConnectionsClient(applicationContext)
+                                .disconnectFromEndpoint(ENDPOINT_ID)
                             stopSelf()
                         }
                     }
                 }
+
                 override fun onPayloadTransferUpdate(
                     p0: String,
                     p1: PayloadTransferUpdate
                 ) {
-                    when(p1.status){
-                        PayloadTransferUpdate.Status.SUCCESS->{
+                    when (p1.status) {
+                        PayloadTransferUpdate.Status.SUCCESS -> {
 
                         }
-                        PayloadTransferUpdate.Status.FAILURE->{
+                        PayloadTransferUpdate.Status.FAILURE -> {
 
                         }
                     }
                 }
             })
             .addOnSuccessListener {
-                Toast.makeText(applicationContext,"Connected to $ENDPOINT_NAME",Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    applicationContext,
+                    "Connected to $ENDPOINT_NAME",
+                    Toast.LENGTH_SHORT
+                ).show()
                 CONNECTED = true
                 connectionUpdate()
-                if(ACCESS.contains(0)){
-                    startForegroundService(Intent(applicationContext,MediaService::class.java))
+                if (ACCESS.contains(0)) {
+                    startForegroundService(Intent(applicationContext, MediaService::class.java))
+                    MediaService.streamMode = getSharedPreferences("default", MODE_PRIVATE).getBoolean("streamMedia", Build.VERSION.SDK_INT> Build.VERSION_CODES.P)
+                    MediaService.SAMPLE_RATE = getSharedPreferences("default", Context.MODE_PRIVATE).getInt("quality", 8000)
                 }
             }
             .addOnFailureListener {
                 CONNECTED = false
                 connectionUpdate()
-                builder = Notification.Builder(applicationContext, "${applicationContext.packageName}.request")
+                builder = Notification.Builder(
+                    applicationContext,
+                    "${applicationContext.packageName}.request"
+                )
                     .setSmallIcon(R.drawable.ic_launcher_background)
                     .setContentTitle("Failed to Connect")
                     .setContentText("Could not connect to $ENDPOINT_NAME")
@@ -128,21 +142,27 @@ class SingularConnectionService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY
     }
+
     override fun onDestroy() {
         CONNECTED = false
         connectionUpdate()
         Nearby.getConnectionsClient(this).disconnectFromEndpoint(ENDPOINT_ID)
+        Nearby.getConnectionsClient(applicationContext).sendPayload(SingularConnectionService.ENDPOINT_ID,
+            Payload.fromBytes(PayloadPacket.toEncBytes(
+                PayloadPacket(PayloadPacket.Companion.PayloadType.DISCONNECT,ByteArray(0))
+            ))).addOnCompleteListener {
+            Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(ENDPOINT_ID)
+            stopService(Intent(applicationContext,MediaService::class.java))
+        }
         super.onDestroy()
     }
+
     private fun initiateConnection() {
-        println("Endpoint ID: $ENDPOINT_ID")
-        println("ACCESS: ${ACCESS.joinToString(separator = "," )}")
-        println("Endpoint Name: $ENDPOINT_NAME")
         EncryptionManager.fetchDynamicKey({
             Nearby.getConnectionsClient(applicationContext).requestConnection(
                 EncryptionManager().encrypt(
                     FirebaseAuth.getInstance().currentUser?.displayName.toString() + "_" + FirebaseAuth.getInstance().currentUser?.uid.toString()
-                        .hashCode()+"_"+ ACCESS.joinToString(separator = ","), it
+                        .hashCode() + "_" + ACCESS.joinToString(separator = ","), it
                 ),
                 ENDPOINT_ID,
                 object : ConnectionLifecycleCallback() {
@@ -153,22 +173,28 @@ class SingularConnectionService : Service() {
                                     p0: String,
                                     p1: Payload
                                 ) {
-                                    if(p1.type==Payload.Type.BYTES && p1.asBytes()!=null){
+                                    if (p1.type == Payload.Type.BYTES && p1.asBytes() != null) {
                                         val payloadPacket = PayloadPacket.fromEncBytes(p1.asBytes()!!)
-                                        when (payloadPacket.payloadType){
+                                        when (payloadPacket.payloadType) {
                                             PayloadPacket.Companion.PayloadType.MEDIA_PACKET -> {
                                                 MediaService.instance.recvMediaSync(payloadPacket.data as MediaPacket)
+                                            }
+                                            PayloadPacket.Companion.PayloadType.AUDIO_PACKET ->{
+                                                MediaService.SAMPLE_RATE = payloadPacket.data as Int
                                             }
                                             PayloadPacket.Companion.PayloadType.DISCONNECT -> {
                                                 CONNECTED = false
                                                 connectionUpdate()
-                                                Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(ENDPOINT_ID)
+                                                Nearby.getConnectionsClient(applicationContext)
+                                                    .disconnectFromEndpoint(ENDPOINT_ID)
                                                 stopSelf()
                                             }
                                         }
+                                    }else if(p1.type==Payload.Type.STREAM){
+                                        println("Stream receiving")
+                                        MediaService.instance.playAudioFromPayload(p1)
                                     }
                                 }
-
                                 override fun onPayloadTransferUpdate(
                                     p0: String,
                                     p1: PayloadTransferUpdate
@@ -177,24 +203,36 @@ class SingularConnectionService : Service() {
                             })
                         connectionInitiated()
                     }
-                    override fun onConnectionResult(p0: String,p1: ConnectionResolution) {
+
+                    override fun onConnectionResult(p0: String, p1: ConnectionResolution) {
                         when (p1.status.statusCode) {
                             ConnectionsStatusCodes.STATUS_OK -> {
-                                builder = Notification.Builder(applicationContext, "${applicationContext.packageName}.request")
+                                builder = Notification.Builder(
+                                    applicationContext,
+                                    "${applicationContext.packageName}.request"
+                                )
                                     .setSmallIcon(R.drawable.ic_launcher_background)
                                     .setContentTitle("Request Accepted")
                                     .setContentText("Your request to $ENDPOINT_NAME was accepted.")
                                 notificationManager.notify(noticount, builder.build())
                                 noticount++
-                                if(ACCESS.contains(0)){
-                                    startForegroundService(Intent(applicationContext,MediaService::class.java))
+                                if (ACCESS.contains(0)) {
+                                    startForegroundService(
+                                        Intent(
+                                            applicationContext,
+                                            MediaService::class.java
+                                        )
+                                    )
                                 }
                                 CONNECTED = true
                                 connectionUpdate()
 
                             }
                             ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {
-                                builder = Notification.Builder(applicationContext, "${applicationContext.packageName}.request")
+                                builder = Notification.Builder(
+                                    applicationContext,
+                                    "${applicationContext.packageName}.request"
+                                )
                                     .setSmallIcon(R.drawable.ic_launcher_background)
                                     .setContentTitle("Request Rejected")
                                     .setContentText("Your request to $ENDPOINT_NAME was rejected.")
@@ -205,7 +243,10 @@ class SingularConnectionService : Service() {
                                 stopSelf()
                             }
                             ConnectionsStatusCodes.STATUS_ERROR -> {
-                                builder = Notification.Builder(applicationContext, "${applicationContext.packageName}.request")
+                                builder = Notification.Builder(
+                                    applicationContext,
+                                    "${applicationContext.packageName}.request"
+                                )
                                     .setSmallIcon(R.drawable.ic_launcher_background)
                                     .setContentTitle("Error Happened")
                                     .setContentText("Your request to $ENDPOINT_NAME failed because of wireless error.")
@@ -219,7 +260,10 @@ class SingularConnectionService : Service() {
                     }
 
                     override fun onDisconnected(p0: String) {
-                        builder = Notification.Builder(applicationContext, "${applicationContext.packageName}.request")
+                        builder = Notification.Builder(
+                            applicationContext,
+                            "${applicationContext.packageName}.request"
+                        )
                             .setSmallIcon(R.drawable.ic_launcher_background)
                             .setContentTitle("Device Disconnected")
                             .setOngoing(false)
@@ -228,7 +272,7 @@ class SingularConnectionService : Service() {
                         noticount++
                         CONNECTED = false
                         connectionUpdate()
-                        stopService(Intent(applicationContext,MediaService::class.java))
+                        stopService(Intent(applicationContext, MediaService::class.java))
                         stopSelf()
                     }
                 })
@@ -237,15 +281,17 @@ class SingularConnectionService : Service() {
 
     companion object {
         lateinit var ENDPOINT_HASH: String
-        lateinit var instance : SingularConnectionService
+        lateinit var instance: SingularConnectionService
         var CONNECTED = false
         var connectionUpdate: () -> Unit = {}
         var connectionInitiated: () -> Unit = {}
         var ENDPOINT_ID: String = ""
         var ENDPOINT_NAME: String = ""
+
         enum class ConnectionMode {
             INITIATE, ACCEPT
         }
+
         var CONNECTION_MODE = ConnectionMode.INITIATE
         var ACCESS = ArrayList<Int>()
     }

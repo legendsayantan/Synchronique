@@ -1,14 +1,10 @@
 package com.legendsayantan.sync.services
 
 import android.Manifest
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.Service
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
+import android.app.*
+import android.content.*
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.graphics.Color
 import android.media.*
 import android.media.projection.MediaProjection
@@ -19,29 +15,33 @@ import android.media.session.MediaSessionManager.OnActiveSessionsChangedListener
 import android.media.session.PlaybackState
 import android.os.Build
 import android.os.IBinder
+import android.view.KeyEvent
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.Payload
+import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.interfaces.MediaPacket
 import com.legendsayantan.sync.interfaces.PayloadPacket
-import java.io.ByteArrayInputStream
-import java.io.InputStream
+import java.io.IOException
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.util.*
 
 
 class MediaService : Service() {
-
     lateinit var SERVICE_ID: String
-
-    var noticount = 0;
+    var CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_STEREO
+    val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
     var count = 0
+    var errorCount = 0
     var timer = Timer()
     private lateinit var mediaProjectionManager: MediaProjectionManager
-    private var mediaProjection: MediaProjection? = null
-
-    private lateinit var audioCaptureThread: Thread
+    private lateinit var mediaProjection: MediaProjection
+    lateinit var audioStream: PipedInputStream
+    lateinit var audioOutputStream: PipedOutputStream
+    lateinit var captureThread: Thread
     private var audioRecord: AudioRecord? = null
     lateinit var mediaPacket: MediaPacket
     override fun onBind(intent: Intent): IBinder {
@@ -63,18 +63,40 @@ class MediaService : Service() {
 
         val manager = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
         manager.createNotificationChannel(chan)
-        val notification = Notification.Builder(this, SERVICE_ID)
-            .setContentTitle(Notification_Title)
-            .setContentText(Notification_Text)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .build()
-        startForeground(1, notification)
+        Notification_Text =
+            "Streaming " + (if (SingularConnectionService.CONNECTION_MODE == SingularConnectionService.Companion.ConnectionMode.ACCEPT) "to " else "from ") + "${SingularConnectionService.ENDPOINT_NAME} @ ${SAMPLE_RATE/1000}KHz"
+
         if (SingularConnectionService.CONNECTED) {
             if (SingularConnectionService.CONNECTION_MODE == SingularConnectionService.Companion.ConnectionMode.INITIATE) {
-
-            } else if(streamMode){
-
-            }else {
+                val notification = Notification.Builder(this, SERVICE_ID)
+                    .setContentTitle(Notification_Title)
+                    .setContentText(Notification_Text)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .build()
+                startForeground(1, notification)
+                //code
+            } else if (streamMode) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    println("Starting Audio Stream")
+                    val notification = Notification.Builder(this, SERVICE_ID)
+                        .setContentTitle(Notification_Title)
+                        .setContentText(Notification_Text)
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .build()
+                    startForeground(
+                        1,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                    )
+                    streamMediaTo(SingularConnectionService.ENDPOINT_ID)
+                }
+            } else {
+                val notification = Notification.Builder(this, SERVICE_ID)
+                    .setContentTitle(Notification_Title)
+                    .setContentText(Notification_Text)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .build()
+                startForeground(1, notification)
                 syncTo(SingularConnectionService.ENDPOINT_ID)
             }
         }
@@ -84,7 +106,6 @@ class MediaService : Service() {
         val mediaSessionManager =
             getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
         val listener = OnActiveSessionsChangedListener { mediaControllers ->
-            println("listener invoke")
             if (mediaControllers != null) {
                 for (controller in mediaControllers) {
                     val mediaControllerCallback = object : MediaController.Callback() {
@@ -92,6 +113,7 @@ class MediaService : Service() {
                             super.onMetadataChanged(metadata)
                             sendMediaSync(controller, endpointId)
                         }
+
                         override fun onPlaybackStateChanged(state: PlaybackState?) {
                             super.onPlaybackStateChanged(state)
                             sendMediaSync(controller, endpointId)
@@ -126,65 +148,97 @@ class MediaService : Service() {
             listener,
             ComponentName(this, NotificationListener::class.java)
         )
-        println("Streaming to.")
+        println("Synced to.")
     }
 
-    private fun StreamMediaTo(endpointId: String){
-
-
-
-
+    private fun streamMediaTo(endpointId: String) {
+        mediaProjectionManager =
+            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
+        MainActivity.instance?.startActivityForResult(captureIntent, REQUEST_CODE_CAPTURE_PERM)
+        ENDPOINT_ID = endpointId
     }
+
     @RequiresApi(Build.VERSION_CODES.Q)
-    private fun startAudioStream() {
+    fun startAudioStream(resultCode: Int, data: Intent?) {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            val config = AudioPlaybackCaptureConfiguration.Builder(mediaProjection!!)
+            mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data!!)
+            val config = AudioPlaybackCaptureConfiguration.Builder(mediaProjection)
                 .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
                 .build()
+            println("Sampling Rate: $SAMPLE_RATE -------------------------------------")
             val audioFormat = AudioFormat.Builder()
-                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                .setSampleRate(8000)
-                .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+                .setEncoding(AUDIO_FORMAT)
+                .setSampleRate(SAMPLE_RATE)
+                .setChannelMask(CHANNEL_CONFIG)
                 .build()
 
-
+            try {
+                audioStream = PipedInputStream()
+                audioOutputStream = PipedOutputStream(audioStream)
+            } catch (e: IOException) {
+                // Handle exception
+                return
+            }
+            val BUFFER_SIZE = 2 * AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
             audioRecord = AudioRecord.Builder()
                 .setAudioFormat(audioFormat)
-                // For optimal performance, the buffer size
-                // can be optionally specified to store audio samples.
-                // If the value is not specified,
-                // uses a single frame and lets the
-                // native code figure out the minimum buffer size.
-                .setBufferSizeInBytes(BUFFER_SIZE_IN_BYTES)
+                .setBufferSizeInBytes(BUFFER_SIZE)
                 .setAudioPlaybackCaptureConfig(config)
                 .build()
 
             audioRecord!!.startRecording()
-
-            val buffer = ByteArray(BUFFER_SIZE_IN_BYTES)
-
-            val recordingThread = Thread {
+            val buffer = ByteArray(BUFFER_SIZE)
+            captureThread = Thread {
                 while (true) {
-                    val result: Int = audioRecord!!.read(buffer, 0, buffer.size)
-                    if (result < 0) {
-                        // Handle error
+                    val result = audioRecord!!.read(buffer, 0, buffer.size)
+                    try {
+                        audioOutputStream.write(buffer, 0, result)
+                        errorCount--
+                    } catch (e: IOException) {
+                        errorCount++
+                    }
+                    if(errorCount > 50) {
+                        Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(ENDPOINT_ID)
+                        val notification = Notification.Builder(applicationContext, SERVICE_ID)
+                            .setContentTitle("Media Service")
+                            .setContentText("Connection timed out!")
+                            .setOngoing(true)
+                            .setSmallIcon(R.drawable.ic_launcher_foreground)
+                            .build()
+                        val manager = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
+                        manager.notify(1, notification)
+                        SingularConnectionService.instance.stopSelf()
+                        instance.stopSelf()
                         break
                     }
-                    val audioStream: InputStream = ByteArrayInputStream(buffer, 0, result)
-                    val payload: Payload = Payload.fromStream(audioStream)
-                    Nearby.getConnectionsClient(this).sendPayload(
-                        SingularConnectionService.ENDPOINT_ID,
-                        payload
-                    )
                 }
             }
-            recordingThread.start()
+            captureThread.start()
+            if (true) {
+                val payload = Payload.fromStream(audioStream)
+                Nearby.getConnectionsClient(this)
+                    .sendPayload(ENDPOINT_ID, Payload.fromBytes(PayloadPacket.toEncBytes(
+                        PayloadPacket(
+                            PayloadPacket.Companion.PayloadType.AUDIO_PACKET,
+                            SAMPLE_RATE
+                        )
+                    )
+                    ))
+                    .addOnSuccessListener {
+                        Nearby.getConnectionsClient(applicationContext)
+                            .sendPayload(ENDPOINT_ID, payload)
+                        println("Audio Stream Started")
+                    }
+                    .addOnFailureListener {
+                        println("Audio Stream Failed")
+                    }
+            }
         }
-
     }
 
     fun sendMediaSync(controller: MediaController, endpointId: String) {
@@ -214,14 +268,47 @@ class MediaService : Service() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            audioRecord?.stop()
+            audioRecord?.release()
+        }catch (ignored:java.lang.Exception){}
+        try{
+            audioOutputStream.close()
+        }catch (ignored:java.lang.Exception){}
+        try{
+            audioStream.close()
+        }catch (ignored:java.lang.Exception){}
+        try{
+            captureThread.interrupt()
+        }catch (ignored:java.lang.Exception){}
+    }
     fun recvMediaSync(m: MediaPacket) {
         mediaPacket = m;
         count = 0;
         timer.cancel()
         timer = Timer()
-        val noti = (if (mediaPacket.isPlaying == true) "Playing : " else "Paused : ") + mediaPacket.title
+        val mediaSessionManager = getSystemService(MEDIA_SESSION_SERVICE) as MediaSessionManager
+        val controllers = mediaSessionManager.getActiveSessions(ComponentName(applicationContext, NotificationListener::class.java))
+        if (controllers.size == 0) {
+            val notification = Notification.Builder(applicationContext, SERVICE_ID)
+                .setContentTitle("Media Service")
+                .setContentText("Play media on this device to sync with ${SingularConnectionService.ENDPOINT_NAME}.")
+                .setOngoing(false)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .build()
+            val manager = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
+            manager.notify(1, notification)
+            return
+        }
+        val recentController = controllers[0]
+        m.timeStamp?.let { recentController.transportControls.seekTo(it) }
+        val noti =
+            (if (mediaPacket.isPlaying == true) "Playing : " else "Paused : ") + mediaPacket.title
         val noti2 = "${mediaPacket.artist}"
         if (mediaPacket.isPlaying == true) {
+            recentController.transportControls.play()
             timer.scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
                     if (count * 1000 >= mediaPacket.duration?.toInt()!! || mediaPacket.isPlaying == false) {
@@ -247,8 +334,14 @@ class MediaService : Service() {
                     count++
                 }
             }, 0, 1000)
-        }
-        else{
+        } else {
+            recentController.transportControls.pause()
+            val intent = Intent(Intent.ACTION_MEDIA_BUTTON)
+            intent.putExtra(
+                Intent.EXTRA_KEY_EVENT,
+                KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE)
+            )
+            sendBroadcast(intent)
             val notification = Notification.Builder(applicationContext, SERVICE_ID)
                 .setContentTitle(noti)
                 .setContentText(noti2)
@@ -266,24 +359,45 @@ class MediaService : Service() {
         }
     }
 
-    companion object {
-        lateinit var instance: MediaService
-        var Notification_Text: String =
-            "Streaming " + if (SingularConnectionService.CONNECTION_MODE == SingularConnectionService.Companion.ConnectionMode.ACCEPT) "to ${SingularConnectionService.ENDPOINT_NAME}" else "from ${SingularConnectionService.ENDPOINT_NAME}"
-        var Notification_Title: String = "Media Service"
-        var streamMode : Boolean = false
-
-        private const val LOG_TAG = "AudioCaptureService"
-        private const val SERVICE_ID = 123
-        private const val NOTIFICATION_CHANNEL_ID = "AudioCapture channel"
-
-        private const val NUM_SAMPLES_PER_READ = 1024
-        private const val BYTES_PER_SAMPLE = 2 // 2 bytes since we hardcoded the PCM 16-bit format
-        private const val BUFFER_SIZE_IN_BYTES = NUM_SAMPLES_PER_READ * BYTES_PER_SAMPLE
-
-        const val ACTION_START = "AudioCaptureService:Start"
-        const val ACTION_STOP = "AudioCaptureService:Stop"
-        const val EXTRA_RESULT_DATA = "AudioCaptureService:Extra:ResultData"
+    fun playAudioFromPayload(payload: Payload) {
+        val bufferSize = AudioTrack.getMinBufferSize(
+            SAMPLE_RATE,
+            AudioFormat.CHANNEL_IN_STEREO,
+            AUDIO_FORMAT
+        )
+        val audioTrack = AudioTrack(
+            AudioManager.STREAM_MUSIC,
+            SAMPLE_RATE,
+            AudioFormat.CHANNEL_IN_STEREO,
+            AUDIO_FORMAT,
+            bufferSize,
+            AudioTrack.MODE_STREAM
+        )
+        audioTrack.play()
+        val playbackThread = Thread {
+            try {
+                payload.asStream()!!.asInputStream().use { inputStream ->
+                    val buffer = ByteArray(bufferSize)
+                    var length: Int
+                    while (inputStream.read(buffer).also { length = it } > 0) {
+                        audioTrack.write(buffer, 0, length)
+                    }
+                }
+            } catch (e: IOException) {
+                // Handle exception
+            }
+        }
+        playbackThread.start()
     }
 
+    companion object {
+        val REQUEST_CODE_CAPTURE_PERM = 156
+        lateinit var instance: MediaService
+        var SAMPLE_RATE = 16000
+        var Notification_Text: String =
+            "Streaming " + (if (SingularConnectionService.CONNECTION_MODE == SingularConnectionService.Companion.ConnectionMode.ACCEPT) "to " else "from ") + "${SingularConnectionService.ENDPOINT_NAME} @ ${SAMPLE_RATE/1000}KHz"
+        var Notification_Title: String = "Media Service"
+        var streamMode: Boolean = false
+        lateinit var ENDPOINT_ID: String
+    }
 }

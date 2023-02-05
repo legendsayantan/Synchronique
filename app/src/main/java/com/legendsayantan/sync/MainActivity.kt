@@ -3,6 +3,7 @@ package com.legendsayantan.sync
 import EncryptionManager
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -10,6 +11,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.ColorDrawable
 import android.location.LocationManager
+import android.media.AudioFormat
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -32,6 +34,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import com.legendsayantan.sync.fragments.AllowlistFragment
 import com.legendsayantan.sync.fragments.ConnectionFragment
 import com.legendsayantan.sync.fragments.HomeFragment
 import com.legendsayantan.sync.fragments.LoginFragment
@@ -76,9 +79,9 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
         instance = null
         stopService(Intent(this, DiscoverService::class.java))
-        if(SingularConnectionService.CONNECTED){
+        if (SingularConnectionService.CONNECTED) {
             stopService(Intent(this, AdvertiserService::class.java))
-        }else{
+        } else {
             startForegroundService(Intent(this, AdvertiserService::class.java))
         }
     }
@@ -101,7 +104,9 @@ class MainActivity : AppCompatActivity() {
                     supportActionBar?.title = getString(R.string.menu_link);
                 }
                 2 -> {
-                    //supportFragmentManager.beginTransaction().replace(R.id.fragment_container, HomeFragment()).commit()
+                    supportFragmentManager.beginTransaction()
+                        .replace(R.id.fragmentContainerView, AllowlistFragment()).commit()
+                    supportActionBar?.title = getString(R.string.menu_allow);
                 }
             }
         }
@@ -123,6 +128,15 @@ class MainActivity : AppCompatActivity() {
                 println("-------------ERROR----------------")
                 e.printStackTrace()
                 println("-------------ERROR----------------")
+            }
+        }
+        if (requestCode == MediaService.REQUEST_CODE_CAPTURE_PERM) {
+            if (resultCode == Activity.RESULT_OK) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    MediaService.instance.startAudioStream(resultCode, data!!)
+                }
+            } else {
+                // Handle the error
             }
         }
     }
@@ -173,8 +187,8 @@ class MainActivity : AppCompatActivity() {
     fun askLocationPermission() {
         requestPermissions(
             arrayOf(
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
             ), 100
         )
     }
@@ -183,16 +197,16 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             requestPermissions(
                 arrayOf(
-                    android.Manifest.permission.BLUETOOTH_ADVERTISE,
-                    android.Manifest.permission.BLUETOOTH_SCAN,
-                    android.Manifest.permission.BLUETOOTH_CONNECT
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT
                 ), 101
             )
         } else {
             requestPermissions(
                 arrayOf(
-                    android.Manifest.permission.BLUETOOTH,
-                    android.Manifest.permission.BLUETOOTH_ADMIN
+                    Manifest.permission.BLUETOOTH,
+                    Manifest.permission.BLUETOOTH_ADMIN
                 ), 101
             )
         }
@@ -200,29 +214,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkPermissions() {
         if (ContextCompat.checkSelfPermission(
-                this, android.Manifest.permission.ACCESS_FINE_LOCATION
+                this, Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
-                this, android.Manifest.permission.ACCESS_COARSE_LOCATION
+                this, Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             locationAccess = true
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (ContextCompat.checkSelfPermission(
-                    this, android.Manifest.permission.BLUETOOTH_ADVERTISE
+                    this, Manifest.permission.BLUETOOTH_ADVERTISE
                 ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-                    this, android.Manifest.permission.BLUETOOTH_SCAN
+                    this, Manifest.permission.BLUETOOTH_SCAN
                 ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-                    this, android.Manifest.permission.BLUETOOTH_CONNECT
+                    this, Manifest.permission.BLUETOOTH_CONNECT
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
                 bluetoothAccess = true
             }
         } else {
             if (ContextCompat.checkSelfPermission(
-                    this, android.Manifest.permission.BLUETOOTH
+                    this, Manifest.permission.BLUETOOTH
                 ) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(
-                    this, android.Manifest.permission.BLUETOOTH_ADMIN
+                    this, Manifest.permission.BLUETOOTH_ADMIN
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
                 bluetoothAccess = true
@@ -247,23 +261,35 @@ class MainActivity : AppCompatActivity() {
                 "Accept",
                 arrayFrom(x[2]),
                 { ints: ArrayList<Int>, appDialog: AppDialog ->
-                    if(ints.contains(0)){
-                        if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(this.packageName)){
-                            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                            Toast.makeText(this, "Please enable notification access", Toast.LENGTH_SHORT).show();
-                            return@AppDialog
-                        }
-                        if(getSharedPreferences("default", MODE_PRIVATE).getBoolean("streamMedia", false)){
+                    if (ints.contains(0)) { //Media access
+                        if (getSharedPreferences("default", MODE_PRIVATE).getBoolean(
+                                "streamMedia",
+                                Build.VERSION.SDK_INT > Build.VERSION_CODES.P
+                            )
+                        ) {
                             if (ActivityCompat.checkSelfPermission(
                                     this,
                                     Manifest.permission.RECORD_AUDIO
                                 ) != PackageManager.PERMISSION_GRANTED
-                            ){
-                                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 102)
+                            ) {
+                                ActivityCompat.requestPermissions(
+                                    this,
+                                    arrayOf(Manifest.permission.RECORD_AUDIO),
+                                    102
+                                )
                                 return@AppDialog
                             }
+                        } else if (!NotificationManagerCompat.getEnabledListenerPackages(this)
+                                .contains(this.packageName)
+                        ) {
+                            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                            Toast.makeText(
+                                this,
+                                "Please enable notification access for ${getString(R.string.app_name)}",
+                                Toast.LENGTH_SHORT
+                            ).show();
+                            return@AppDialog
                         }
-                        MediaService.streamMode = getSharedPreferences("default", MODE_PRIVATE).getBoolean("streamMedia", false);
                     }
                     SingularConnectionService.connectionUpdate =
                         { if (SingularConnectionService.CONNECTED) appDialog.hide(); }
@@ -279,18 +305,20 @@ class MainActivity : AppCompatActivity() {
                 { Nearby.getConnectionsClient(this).rejectConnection(endpoint.endpointId) }).show()
         }
     }
-    fun arrayFrom(str: String): ArrayList<Int>{
+
+    fun arrayFrom(str: String): ArrayList<Int> {
         var data = str
-        if(data.startsWith("[")&&data.endsWith("]")){
-            data = data.substring(1,data.lastIndex-1)
+        if (data.startsWith("[") && data.endsWith("]")) {
+            data = data.substring(1, data.lastIndex - 1)
         }
         var splits = data.split(",");
         var out = ArrayList<Int>()
-        for (s in splits){
+        for (s in splits) {
             out.add(s.toInt())
         }
         return out
     }
+
     companion object {
         var bluetoothAccess: Boolean = false
         var locationAccess: Boolean = false

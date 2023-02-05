@@ -5,4 +5,5 @@
     <string name="menu_link">Connect</string>
     <string name="sign_in">Sign in</string>
     <string name="sign_in_with">Sign in with</string>
+    <string name="menu_allow">Allowed</string>
 </resources>

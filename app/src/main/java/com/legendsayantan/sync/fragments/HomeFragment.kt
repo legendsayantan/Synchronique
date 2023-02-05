@@ -9,14 +9,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.RadioButton
+import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import com.google.android.gms.nearby.Nearby
+import com.google.android.gms.nearby.connection.Payload
 import com.google.android.material.card.MaterialCardView
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
+import com.legendsayantan.sync.interfaces.PayloadPacket
 import com.legendsayantan.sync.services.AdvertiserService
 import com.legendsayantan.sync.services.DiscoverService
 import com.legendsayantan.sync.services.SingularConnectionService
@@ -101,8 +106,30 @@ class HomeFragment() : Fragment() {
         requireView().findViewById<ImageView>(R.id.signOut).setOnClickListener {
             (requireActivity() as MainActivity).signOut()
         }
-        view.findViewById<TextView>(R.id.killSwitch).setOnClickListener{
-            exitProcess(0)
+        view.findViewById<MaterialCardView>(R.id.killNetwork).setOnClickListener {
+            if(AdvertiserService.ADVERTISING||DiscoverService.DISCOVERING){
+                requireActivity().stopService(Intent(requireContext(), AdvertiserService::class.java))
+                requireActivity().stopService(Intent(requireContext(), DiscoverService::class.java))
+            }else{
+                requireActivity().startForegroundService(Intent(requireContext(),AdvertiserService::class.java))
+            }
+        }
+        view.findViewById<MaterialCardView>(R.id.killApp).setOnClickListener {
+            if(SingularConnectionService.CONNECTED){
+                Nearby.getConnectionsClient(requireContext()).sendPayload(SingularConnectionService.ENDPOINT_ID,
+                    Payload.fromBytes(PayloadPacket.toEncBytes(
+                        PayloadPacket(PayloadPacket.Companion.PayloadType.DISCONNECT,ByteArray(0))
+                    ))).addOnCompleteListener {
+                        Nearby.getConnectionsClient(requireContext()).stopAllEndpoints()
+                    requireActivity().stopService(Intent(requireContext(), AdvertiserService::class.java))
+                    requireActivity().stopService(Intent(requireContext(), DiscoverService::class.java))
+                    exitProcess(0)
+                }
+            }else{
+                requireActivity().stopService(Intent(requireContext(), AdvertiserService::class.java))
+                requireActivity().stopService(Intent(requireContext(), DiscoverService::class.java))
+                exitProcess(0)
+            }
         }
         var uid = firebaseAuth.currentUser?.uid.hashCode().toString()
         requireView().findViewById<TextView>(R.id.hash).text =
@@ -110,25 +137,47 @@ class HomeFragment() : Fragment() {
                 uid.length / 3,
                 uid.length * 2 / 3
             ) + " " + uid.substring(uid.length * 2 / 3, uid.length)
-        if(Build.VERSION.SDK_INT<Build.VERSION_CODES.Q){
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             view.findViewById<RadioButton>(R.id.radioStream).isEnabled = false
-            requireActivity().getSharedPreferences("default",Context.MODE_PRIVATE).edit().putBoolean("streamMedia",false).apply()
+            requireActivity().getSharedPreferences("default", Context.MODE_PRIVATE).edit()
+                .putBoolean("streamMedia", false).apply()
         }
-        requireActivity().getSharedPreferences("default", Context.MODE_PRIVATE).getBoolean("streamMedia",true).let {
+        requireActivity().getSharedPreferences("default", Context.MODE_PRIVATE)
+            .getBoolean("streamMedia", Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q).let {
             view.findViewById<RadioButton>(R.id.radioStream).isChecked = it
             view.findViewById<RadioButton>(R.id.radioSync).isChecked = !it
         }
-        view.findViewById<RadioButton>(R.id.radioSync).setOnClickListener {
-            //store in shared prefs
-            requireActivity().getSharedPreferences("default",Context.MODE_PRIVATE).edit().putBoolean("streamMedia",false).apply()
-        }
-        view.findViewById<RadioButton>(R.id.radioSync).setOnClickListener {
-            //store in shared prefs
-            requireActivity().getSharedPreferences("default",Context.MODE_PRIVATE).edit().putBoolean("streamMedia",true).apply()
-        }
+        view.findViewById<RadioButton>(R.id.radioSync)
+            .setOnCheckedChangeListener { buttonView, isChecked ->
+                requireActivity().getSharedPreferences("default", Context.MODE_PRIVATE).edit()
+                    .putBoolean("streamMedia", !isChecked).apply()
+            }
+        view.findViewById<RadioButton>(R.id.radioStream)
+            .setOnCheckedChangeListener { buttonView, isChecked ->
+                requireActivity().getSharedPreferences("default", Context.MODE_PRIVATE).edit()
+                    .putBoolean("streamMedia", isChecked).apply()
+                view.findViewById<LinearLayout>(R.id.streamLayout).visibility =
+                    if (isChecked) View.VISIBLE else View.GONE
+            }
+        view.findViewById<LinearLayout>(R.id.streamLayout).visibility =
+            if (view.findViewById<RadioButton>(R.id.radioStream).isChecked) View.VISIBLE else View.GONE
+        val quality = requireActivity().getSharedPreferences("default", Context.MODE_PRIVATE)
+            .getInt("quality", 8000)/1000
+        view.findViewById<SeekBar>(R.id.quality).setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                requireActivity().getSharedPreferences("default", Context.MODE_PRIVATE).edit()
+                    .putInt("quality", progress*1000).apply()
+                view.findViewById<TextView>(R.id.seekValue).text=progress.toString()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+            }
+        })
+        view.findViewById<SeekBar>(R.id.quality).progress = quality
+        view.findViewById<TextView>(R.id.seekValue).text= quality.toString()
         permissions()
-
-        if (MainActivity.isLocationEnabled(requireContext())) startAdvertise()
         AdvertiserService.advertise_start = ::stateUpdate
         AdvertiserService.advertise_stop = ::stateUpdate
         SingularConnectionService.connectionUpdate = ::stateUpdate
@@ -148,12 +197,14 @@ class HomeFragment() : Fragment() {
                         View.GONE
                     requireView().findViewById<MaterialCardView>(R.id.networkCard).visibility =
                         View.VISIBLE
+                    if (MainActivity.isLocationEnabled(requireContext())) startAdvertise()
                 }
             } else {
                 requireView().findViewById<MaterialCardView>(R.id.permissionCard).visibility =
                     View.GONE
                 requireView().findViewById<MaterialCardView>(R.id.networkCard).visibility =
                     View.VISIBLE
+                if (MainActivity.isLocationEnabled(requireContext())) startAdvertise()
             }
         } else locationSwitch.setOnClickListener {
             (requireActivity() as MainActivity).askLocationPermission()
@@ -191,6 +242,8 @@ class HomeFragment() : Fragment() {
         var network =
             if (AdvertiserService.ADVERTISING) "Advertising" else if (DiscoverService.DISCOVERING) "Discovering" else "Invisible"
         if (SingularConnectionService.CONNECTED) network += " , Connected"
+        requireView().findViewById<TextView>(R.id.killText).text =
+            if (AdvertiserService.ADVERTISING) "Stop Advertise" else if (DiscoverService.DISCOVERING) "Stop Discover" else "Advertise"
         requireView().findViewById<TextView>(R.id.networkText).text = "Network - $network"
     }
 

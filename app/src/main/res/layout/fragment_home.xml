@@ -144,15 +144,7 @@
                             android:id="@+id/networkText"
                             android:layout_marginBottom="10dp"
                             android:text="Network - Loading..." />
-                        <TextView
-                            android:id="@+id/killSwitch"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:gravity="end"
-                            android:layout_marginBottom="10dp"
-                            android:text="STOP   " />
+
                     </LinearLayout>
 
                     <Switch
@@ -160,6 +152,50 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Run in Background" />
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:gravity="center"
+                        android:layout_marginTop="10dp"
+                        android:layout_height="wrap_content">
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/killNetwork"
+                            app:cardCornerRadius="5dp"
+                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="?attr/backgroundColor"
+                            app:strokeColor="?attr/colorPrimary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="25dp">
+                            <TextView
+                                android:id="@+id/killText"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:textSize="14sp"
+                                android:layout_marginHorizontal="10dp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:text="STOP" />
+                        </com.google.android.material.card.MaterialCardView>
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/killApp"
+                            app:cardCornerRadius="5dp"
+                            app:strokeWidth="1dp"
+                            android:layout_gravity="end"
+                            android:layout_marginStart="25dp"
+                            app:cardBackgroundColor="?attr/backgroundColor"
+                            app:strokeColor="?attr/colorPrimary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="25dp">
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:textSize="14sp"
+                                android:layout_marginHorizontal="10dp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:text="Stop Everything" />
+                        </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
             <com.google.android.material.card.MaterialCardView
@@ -192,7 +228,7 @@
                             android:layout_height="wrap_content"
                             android:textSize="14sp"
                             android:layout_weight="1"
-                            android:text="Media Sync mode - " />
+                            android:text="Media Share" />
                     </LinearLayout>
 
                     <RadioGroup
@@ -210,7 +246,46 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Stream (Android Version >= 10)" />
-                    </RadioGroup>
+
+                           </RadioGroup>
+
+                    <LinearLayout
+                        android:id="@+id/streamLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+                        <LinearLayout
+                            android:orientation="horizontal"
+                            android:gravity="center"
+                            android:layout_marginBottom="5dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+                            <TextView
+                                android:text="Stream Quality"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"/>
+                            <SeekBar
+                                android:id="@+id/quality"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:min="8"
+                                android:max="44"
+                                android:layout_weight="1"
+                                android:progress="1" />
+                            <TextView
+                                android:id="@+id/seekValue"
+                                android:text="8"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"/>
+                            <TextView
+                                android:text=" KHz"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
