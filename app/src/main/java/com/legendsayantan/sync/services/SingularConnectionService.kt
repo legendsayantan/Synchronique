@@ -29,7 +29,7 @@ class SingularConnectionService : Service() {
     lateinit var notificationManager: NotificationManager
     lateinit var notificationChannel: NotificationChannel
     lateinit var builder: Notification.Builder
-
+    var endpointName = ENDPOINT_NAME
     var noticount = 0;
 
     override fun onBind(intent: Intent): IBinder {
@@ -177,7 +177,7 @@ class SingularConnectionService : Service() {
                                         val payloadPacket = PayloadPacket.fromEncBytes(p1.asBytes()!!)
                                         when (payloadPacket.payloadType) {
                                             PayloadPacket.Companion.PayloadType.MEDIA_PACKET -> {
-                                                MediaService.instance.recvMediaSync(payloadPacket.data as MediaPacket)
+                                                MediaService.instance?.recvMediaSync(payloadPacket.data as MediaPacket)
                                             }
                                             PayloadPacket.Companion.PayloadType.AUDIO_PACKET ->{
                                                 MediaService.SAMPLE_RATE = payloadPacket.data as Int
@@ -192,7 +192,7 @@ class SingularConnectionService : Service() {
                                         }
                                     }else if(p1.type==Payload.Type.STREAM){
                                         println("Stream receiving")
-                                        MediaService.instance.playAudioFromPayload(p1)
+                                        MediaService.instance?.playAudioFromPayload(p1)
                                     }
                                 }
                                 override fun onPayloadTransferUpdate(
@@ -267,11 +267,12 @@ class SingularConnectionService : Service() {
                             .setSmallIcon(R.drawable.ic_launcher_background)
                             .setContentTitle("Device Disconnected")
                             .setOngoing(false)
-                            .setContentText("$ENDPOINT_NAME was disconnected.")
+                            .setContentText("$endpointName was disconnected.")
                         notificationManager.notify(noticount, builder.build())
                         noticount++
                         CONNECTED = false
                         connectionUpdate()
+                        MediaService.instance?.transferThread?.interrupt()
                         stopService(Intent(applicationContext, MediaService::class.java))
                         stopSelf()
                     }

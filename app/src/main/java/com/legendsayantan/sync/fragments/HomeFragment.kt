@@ -120,12 +120,13 @@ class HomeFragment() : Fragment() {
                     Payload.fromBytes(PayloadPacket.toEncBytes(
                         PayloadPacket(PayloadPacket.Companion.PayloadType.DISCONNECT,ByteArray(0))
                     ))).addOnCompleteListener {
-                        Nearby.getConnectionsClient(requireContext()).stopAllEndpoints()
+                    Nearby.getConnectionsClient(requireContext()).stopAllEndpoints()
                     requireActivity().stopService(Intent(requireContext(), AdvertiserService::class.java))
                     requireActivity().stopService(Intent(requireContext(), DiscoverService::class.java))
                     exitProcess(0)
                 }
             }else{
+                Nearby.getConnectionsClient(requireContext()).stopAllEndpoints()
                 requireActivity().stopService(Intent(requireContext(), AdvertiserService::class.java))
                 requireActivity().stopService(Intent(requireContext(), DiscoverService::class.java))
                 exitProcess(0)
@@ -178,8 +179,8 @@ class HomeFragment() : Fragment() {
         view.findViewById<SeekBar>(R.id.quality).progress = quality
         view.findViewById<TextView>(R.id.seekValue).text= quality.toString()
         permissions()
-        AdvertiserService.advertise_start = ::stateUpdate
-        AdvertiserService.advertise_stop = ::stateUpdate
+        AdvertiserService.advertise_update = ::stateUpdate
+        AdvertiserService.advertise_update = ::stateUpdate
         SingularConnectionService.connectionUpdate = ::stateUpdate
     }
 
@@ -226,7 +227,7 @@ class HomeFragment() : Fragment() {
             )
         )
         if (!AdvertiserService.ADVERTISING) {
-            if (MainActivity.locationAccess && MainActivity.bluetoothAccess && !AdvertiserService.ADVERTISING) {
+            if (MainActivity.locationAccess && MainActivity.bluetoothAccess) {
                 requireActivity().startForegroundService(
                     Intent(
                         requireContext(),

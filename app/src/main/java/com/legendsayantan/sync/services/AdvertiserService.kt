@@ -40,8 +40,7 @@ class AdvertiserService : Service() {
         manager.createNotificationChannel(chan)
 
         val notification = Notification.Builder(this, SERVICE_ID)
-            .setContentTitle("Advertiser Service")
-            .setContentText("Advertiser Service is running")
+            .setContentText("App is running in background")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .build()
         startForeground(1, notification)
@@ -76,14 +75,16 @@ class AdvertiserService : Service() {
     override fun onDestroy() {
         ADVERTISING = false
         Nearby.getConnectionsClient(this).stopAdvertising()
-        advertise_stop()
+        advertise_update()
         super.onDestroy()
     }
 
     private fun startAdvertising() {
         val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
             override fun onConnectionResult(p0: String, p1: ConnectionResolution) {
+                advertise_update()
                 when (p1.status.statusCode) {
+
                     ConnectionsStatusCodes.STATUS_OK -> {
 
                     }
@@ -91,12 +92,41 @@ class AdvertiserService : Service() {
 
                     }
                     ConnectionsStatusCodes.STATUS_ERROR -> {
-
+                        builder = Notification.Builder(
+                            applicationContext,
+                            "${applicationContext.packageName}.request"
+                        )
+                            .setSmallIcon(R.drawable.ic_launcher_background)
+                            .setContentTitle("Connection Error")
+                            .setOngoing(false)
+                            .setContentText("Could not connect to ${SingularConnectionService.ENDPOINT_NAME}, Please retry.")
+                        notificationManager.notify(noticount, builder.build())
+                        noticount++
+                        SingularConnectionService.CONNECTED = false
+                        SingularConnectionService.connectionUpdate()
+                        MediaService.instance?.transferThread?.interrupt()
+                        stopService(Intent(applicationContext, MediaService::class.java))
+                        stopService(Intent(applicationContext, SingularConnectionService::class.java))
                     }
                 }
             }
 
             override fun onDisconnected(p0: String) {
+                builder = Notification.Builder(
+                    applicationContext,
+                    "${applicationContext.packageName}.request"
+                )
+                    .setSmallIcon(R.drawable.ic_launcher_background)
+                    .setContentTitle("Device Disconnected")
+                    .setOngoing(false)
+                    .setContentText("${SingularConnectionService.ENDPOINT_NAME} was disconnected.")
+                notificationManager.notify(noticount, builder.build())
+                noticount++
+                SingularConnectionService.CONNECTED = false
+                SingularConnectionService.connectionUpdate()
+                MediaService.instance?.transferThread?.interrupt()
+                stopService(Intent(applicationContext, MediaService::class.java))
+                stopService(Intent(applicationContext, SingularConnectionService::class.java))
             }
 
             override fun onConnectionInitiated(p0: String, p1: ConnectionInfo) {
@@ -127,7 +157,9 @@ class AdvertiserService : Service() {
                         MainActivity.instance!!.startFromNotification(intent)
                     }
 
-                }, {})
+                }, {
+                    Toast.makeText(applicationContext, "Could not validate auth, check your internet connection", Toast.LENGTH_LONG).show()
+                })
 
             }
         }
@@ -141,20 +173,19 @@ class AdvertiserService : Service() {
             .addOnSuccessListener {
                 println("Advertising started successfully")
                 ADVERTISING = true
-                advertise_start()
+                advertise_update()
             }
             .addOnFailureListener {
                 println("Advertising failed " + it.message)
                 ADVERTISING = false
-                advertise_stop()
+                advertise_update()
             }
     }
 
     companion object {
         lateinit var instance: AdvertiserService
         var ADVERTISING = false
-        var advertise_start: () -> Unit = {}
-        var advertise_stop: () -> Unit = {}
+        var advertise_update: () -> Unit = {}
         lateinit var advertise_id: String
     }
 }

@@ -39,8 +39,7 @@ class DiscoverService : Service() {
         manager.createNotificationChannel(chan)
 
         val notification = Notification.Builder(this, SERVICE_ID)
-            .setContentTitle("Discover Service")
-            .setContentText("Discover Service is running")
+            .setContentText("App is running in background")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .build()
         startForeground(1, notification)

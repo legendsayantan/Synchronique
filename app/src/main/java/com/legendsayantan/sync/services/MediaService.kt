@@ -41,7 +41,7 @@ class MediaService : Service() {
     private lateinit var mediaProjection: MediaProjection
     lateinit var audioStream: PipedInputStream
     lateinit var audioOutputStream: PipedOutputStream
-    lateinit var captureThread: Thread
+    lateinit var transferThread: Thread
     private var audioRecord: AudioRecord? = null
     lateinit var mediaPacket: MediaPacket
     override fun onBind(intent: Intent): IBinder {
@@ -68,16 +68,17 @@ class MediaService : Service() {
 
         if (SingularConnectionService.CONNECTED) {
             if (SingularConnectionService.CONNECTION_MODE == SingularConnectionService.Companion.ConnectionMode.INITIATE) {
+                initialiseNotiText()
                 val notification = Notification.Builder(this, SERVICE_ID)
                     .setContentTitle(Notification_Title)
                     .setContentText(Notification_Text)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .build()
                 startForeground(1, notification)
-                //code
             } else if (streamMode) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     println("Starting Audio Stream")
+                    initialiseNotiText()
                     val notification = Notification.Builder(this, SERVICE_ID)
                         .setContentTitle(Notification_Title)
                         .setContentText(Notification_Text)
@@ -91,6 +92,7 @@ class MediaService : Service() {
                     streamMediaTo(SingularConnectionService.ENDPOINT_ID)
                 }
             } else {
+                initialiseNotiText()
                 val notification = Notification.Builder(this, SERVICE_ID)
                     .setContentTitle(Notification_Title)
                     .setContentText(Notification_Text)
@@ -99,6 +101,15 @@ class MediaService : Service() {
                 startForeground(1, notification)
                 syncTo(SingularConnectionService.ENDPOINT_ID)
             }
+        }
+    }
+    fun initialiseNotiText(){
+        if(streamMode){
+            Notification_Text =
+                "Streaming " + (if (SingularConnectionService.CONNECTION_MODE == SingularConnectionService.Companion.ConnectionMode.ACCEPT) "to " else "from ") + "${SingularConnectionService.ENDPOINT_NAME} @ ${SAMPLE_RATE/1000}KHz"
+        }else{
+            Notification_Text =
+                "Synced " + (if (SingularConnectionService.CONNECTION_MODE == SingularConnectionService.Companion.ConnectionMode.ACCEPT) "to " else "from ") + SingularConnectionService.ENDPOINT_NAME
         }
     }
 
@@ -193,16 +204,16 @@ class MediaService : Service() {
 
             audioRecord!!.startRecording()
             val buffer = ByteArray(BUFFER_SIZE)
-            captureThread = Thread {
+            transferThread = Thread {
                 while (true) {
                     val result = audioRecord!!.read(buffer, 0, buffer.size)
                     try {
                         audioOutputStream.write(buffer, 0, result)
                         errorCount--
-                    } catch (e: IOException) {
+                    } catch (e: Exception) {
                         errorCount++
                     }
-                    if(errorCount > 50) {
+                    if(errorCount > 10) {
                         Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(ENDPOINT_ID)
                         val notification = Notification.Builder(applicationContext, SERVICE_ID)
                             .setContentTitle("Media Service")
@@ -213,12 +224,12 @@ class MediaService : Service() {
                         val manager = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
                         manager.notify(1, notification)
                         SingularConnectionService.instance.stopSelf()
-                        instance.stopSelf()
+                        instance?.stopSelf()
                         break
                     }
                 }
             }
-            captureThread.start()
+            transferThread.start()
             if (true) {
                 val payload = Payload.fromStream(audioStream)
                 Nearby.getConnectionsClient(this)
@@ -281,8 +292,9 @@ class MediaService : Service() {
             audioStream.close()
         }catch (ignored:java.lang.Exception){}
         try{
-            captureThread.interrupt()
+            transferThread.interrupt()
         }catch (ignored:java.lang.Exception){}
+        instance = null
     }
     fun recvMediaSync(m: MediaPacket) {
         mediaPacket = m;
@@ -374,7 +386,7 @@ class MediaService : Service() {
             AudioTrack.MODE_STREAM
         )
         audioTrack.play()
-        val playbackThread = Thread {
+        transferThread = Thread {
             try {
                 payload.asStream()!!.asInputStream().use { inputStream ->
                     val buffer = ByteArray(bufferSize)
@@ -384,15 +396,16 @@ class MediaService : Service() {
                     }
                 }
             } catch (e: IOException) {
-                // Handle exception
+                e.printStackTrace()
+                transferThread.interrupt()
             }
         }
-        playbackThread.start()
+        transferThread.start()
     }
 
     companion object {
         val REQUEST_CODE_CAPTURE_PERM = 156
-        lateinit var instance: MediaService
+        var instance: MediaService? = null
         var SAMPLE_RATE = 16000
         var Notification_Text: String =
             "Streaming " + (if (SingularConnectionService.CONNECTION_MODE == SingularConnectionService.Companion.ConnectionMode.ACCEPT) "to " else "from ") + "${SingularConnectionService.ENDPOINT_NAME} @ ${SAMPLE_RATE/1000}KHz"

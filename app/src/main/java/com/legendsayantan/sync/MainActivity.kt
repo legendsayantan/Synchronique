@@ -133,10 +133,10 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == MediaService.REQUEST_CODE_CAPTURE_PERM) {
             if (resultCode == Activity.RESULT_OK) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    MediaService.instance.startAudioStream(resultCode, data!!)
+                    MediaService.instance?.startAudioStream(resultCode, data!!)
                 }
             } else {
-                // Handle the error
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -148,7 +148,7 @@ class MainActivity : AppCompatActivity() {
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
                     val user: FirebaseUser? = firebaseAuth.currentUser
-                    firebaseAuth.currentUser?.getIdToken(true)?.addOnCompleteListener {
+                    user?.getIdToken(true)?.addOnCompleteListener {
                         getSharedPreferences("default", MODE_PRIVATE).edit()
                             .putString("authtoken", it.result.token).apply()
                     }
