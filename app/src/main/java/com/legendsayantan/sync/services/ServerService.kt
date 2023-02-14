@@ -2,8 +2,10 @@ package com.legendsayantan.sync.services
 
 import android.Manifest
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.session.PlaybackState.ACTION_PLAY_PAUSE
@@ -93,7 +95,7 @@ class ServerService : Service() {
                     )
                 )
                 //here comes the actual connection
-                Nearby.getConnectionsClient(applicationContext).sendPayload(
+                /*Nearby.getConnectionsClient(applicationContext).sendPayload(
                     endpointInfo.id,
                     Payload.fromBytes(
                         PayloadPacket.toEncBytes(
@@ -105,7 +107,7 @@ class ServerService : Service() {
                     )
                 ).addOnCompleteListener {
                     startServingData()
-                }
+                }*/
             }
             .addOnFailureListener {
                 Toast.makeText(
@@ -120,7 +122,7 @@ class ServerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when(intent?.action){
+       /* when(intent?.action){
             "play" -> {
                 Toast.makeText(applicationContext, "play", Toast.LENGTH_SHORT).show()
             }
@@ -136,7 +138,7 @@ class ServerService : Service() {
             "ff" -> {
                 Toast.makeText(applicationContext, "forward", Toast.LENGTH_SHORT).show()
             }
-        }
+        }*/
         return START_STICKY
     }
 
@@ -157,28 +159,28 @@ class ServerService : Service() {
         super.onDestroy()
     }
 
-    fun mediaControls() {
+/*    fun mediaControls() {
         val playPauseIntent = Intent(this, ServerService::class.java)
         playPauseIntent.action = "play"
-        val playPausePendingIntent = PendingIntent.getService(this, 0, playPauseIntent, 0)
+        val playPausePendingIntent = PendingIntent.getService(this, 0, playPauseIntent, PendingIntent.FLAG_IMMUTABLE)
 
         val prevIntent = Intent(this, ServerService::class.java)
         prevIntent.action = "prev"
-        val prevPendingIntent = PendingIntent.getService(this, 0, prevIntent, 0)
+        val prevPendingIntent = PendingIntent.getService(this, 0, prevIntent, PendingIntent.FLAG_IMMUTABLE)
 
         val nextIntent = Intent(this, ServerService::class.java)
         nextIntent.action = "next"
-        val nextPendingIntent = PendingIntent.getService(this, 0, nextIntent, 0)
+        val nextPendingIntent = PendingIntent.getService(this, 0, nextIntent, PendingIntent.FLAG_IMMUTABLE)
 
         val rewindIntent = Intent(this, ServerService::class.java)
         rewindIntent.action = "rewind"
-        val rewindPendingIntent = PendingIntent.getService(this, 0, rewindIntent, 0)
+        val rewindPendingIntent = PendingIntent.getService(this, 0, rewindIntent, PendingIntent.FLAG_IMMUTABLE)
 
         val ffIntent = Intent(this, ServerService::class.java)
         ffIntent.action = "ff"
-        val ffPendingIntent = PendingIntent.getService(this, 0, ffIntent, 0)
+        val ffPendingIntent = PendingIntent.getService(this, 0, ffIntent, PendingIntent.FLAG_IMMUTABLE)
 // Create the notification with media playback controls
-        val notification = NotificationCompat.Builder(this, "player_channel")
+        val notification = Notification.Builder(this, Notifications.controls_channel)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Media Controls")
             .addAction(R.drawable.baseline_fast_rewind_24, "Rewind", rewindPendingIntent)
@@ -189,7 +191,7 @@ class ServerService : Service() {
             .build()
 
 // Show the notification
-        val notificationManager = NotificationManagerCompat.from(this)
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
@@ -201,6 +203,8 @@ class ServerService : Service() {
     fun startServingData(){
         if(serverConfig.clientConfig.media)mediaControls()
     }
+    */
+
 
     companion object {
         lateinit var instance: ServerService

@@ -27,8 +27,8 @@ class ClientService : Service() {
 
 
     lateinit var notificationManager: NotificationManager
-    var CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_STEREO
-    val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
+    /*var CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_STEREO
+    val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT*/
     lateinit var builder: Notification.Builder
     var noticount = 0;
     lateinit var clientConfig: ClientConfig
@@ -93,12 +93,12 @@ class ClientService : Service() {
                                                 connectionCanceled()
                                                 Nearby.getConnectionsClient(applicationContext)
                                                     .disconnectFromEndpoint(serverEndpoint.id)
-                                                Values.connectedServer = null
+                                                //Values.connectedServer = null
                                                 stopSelf()
                                             }
                                             PayloadPacket.Companion.PayloadType.CONFIG_PACKET -> {
-                                                clientConfig = payloadPacket.data as ClientConfig
-                                                prepareReceivers(clientConfig)
+                                                //clientConfig = payloadPacket.data as ClientConfig
+                                                //prepareReceivers(clientConfig)
                                             }
                                             PayloadPacket.Companion.PayloadType.MEDIA_PACKET -> {
                                                 //MediaService.instance?.recvMediaSync(payloadPacket.data as MediaPacket)
@@ -106,7 +106,7 @@ class ClientService : Service() {
                                         }
                                     }else if(p1.type==Payload.Type.STREAM){
                                         println("Stream started")
-                                        playAudioFromPayload(p1)
+                                        //playAudioFromPayload(p1)
                                     }
                                 }
                                 override fun onPayloadTransferUpdate(
@@ -187,15 +187,15 @@ class ClientService : Service() {
         }, {})
     }
 
-    fun prepareReceivers(clientConfig: ClientConfig){
+    /*fun prepareReceivers(clientConfig: ClientConfig){
         MainActivity.instance?.runOnUiThread {
             PermissionManager(MainActivity.instance!!).ask(clientConfig){
 
             }
         }
-    }
+    }*/
 
-    fun playAudioFromPayload(payload: Payload) {
+    /*fun playAudioFromPayload(payload: Payload) {
         val bufferSize = AudioTrack.getMinBufferSize(
             MediaService.SAMPLE_RATE,
             AudioFormat.CHANNEL_IN_STEREO,
@@ -225,7 +225,7 @@ class ClientService : Service() {
             }
         }
         transferThread.start()
-    }
+    }*/
     companion object {
         lateinit var instance: ClientService
         var CONNECTED = false

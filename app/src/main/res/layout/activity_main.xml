@@ -17,7 +17,9 @@
         android:id="@+id/fragmentContainerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="60dp">
+        android:layout_marginBottom="60dp"
+        android:name="com.legendsayantan.sync.fragments.HomeFragment"
+        tools:layout="@layout/fragment_home">
 
     </androidx.fragment.app.FragmentContainerView>
 
