@@ -54,22 +54,6 @@
                 android:typeface="monospace"
                 android:text="Advertiseruid" />
 
-            <TextView
-                android:gravity="center"
-                android:text="Sync for :"
-                android:layout_width="match_parent"
-                android:layout_marginTop="10dp"
-                android:layout_height="wrap_content"/>
-
-
-
-                <GridView
-                    android:id="@+id/grid"
-                    android:layout_gravity="center"
-                    android:gravity="center"
-                    android:layout_marginHorizontal="75dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/linkBtn"

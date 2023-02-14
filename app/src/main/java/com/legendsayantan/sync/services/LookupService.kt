@@ -2,11 +2,9 @@ package com.legendsayantan.sync.services
 
 import EncryptionManager
 import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.os.IBinder
 import android.widget.Toast
 import com.google.android.gms.nearby.Nearby
@@ -14,32 +12,26 @@ import com.google.android.gms.nearby.connection.*
 import com.legendsayantan.sync.interfaces.EndpointInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.R
+import com.legendsayantan.sync.workers.Notifications
+import com.legendsayantan.sync.workers.Values
+import java.util.*
+import kotlin.collections.ArrayList
 
-class DiscoverService : Service() {
+class LookupService : Service() {
+    lateinit var values : Values
+    lateinit var lookupThread: Timer
 
-    lateinit var SERVICE_ID: String
     override fun onBind(intent: Intent): IBinder {
         return null!!
     }
 
     override fun onCreate() {
         super.onCreate()
-        SERVICE_ID = "$packageName.advertise"
         instance = this
         endpoints = ArrayList()
-        val chan = NotificationChannel(
-            "$packageName.discover",
-            "Discover Service",
-            NotificationManager.IMPORTANCE_NONE
-        )
-        chan.lightColor = Color.BLUE
-        chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
-
-        val manager = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
-        manager.createNotificationChannel(chan)
-
-        val notification = Notification.Builder(this, SERVICE_ID)
-            .setContentText("App is running in background")
+        values = Values(applicationContext)
+        val notification = Notification.Builder(this, Notifications.lookup_channel)
+            .setContentTitle("Looking for nearby devices")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .build()
         startForeground(1, notification)
@@ -54,9 +46,9 @@ class DiscoverService : Service() {
         return START_STICKY
     }
     override fun onDestroy() {
-        DISCOVERING = false
-        discover_stop()
+        lookupThread.cancel()
         Nearby.getConnectionsClient(this).stopDiscovery()
+        Values.appState = Values.Companion.AppState.IDLE
         super.onDestroy()
     }
     private fun startDiscovery() {
@@ -77,37 +69,40 @@ class DiscoverService : Service() {
             }
 
             override fun onEndpointLost(p0: String) {
-                endpoints.removeIf { it.endpointId == p0 }
-                endpoint_updated()
+                endpoints.removeIf { it.id == p0 }
             }
         }
-        val discoveryOptions: DiscoveryOptions = DiscoveryOptions.Builder().setStrategy(Strategy.P2P_POINT_TO_POINT).build()
-        Nearby.getConnectionsClient(this)
-            .startDiscovery(SERVICE_ID, endpointDiscoveryCallback, discoveryOptions)
-            .addOnCompleteListener {
-                println("Discover service trying to start")
+        Values.appState = Values.Companion.AppState.LOOKING
+        lookupThread = lookupNow(applicationContext,endpointDiscoveryCallback)
+    }
+
+    fun lookupNow(context: Context,endpointDiscoveryCallback: EndpointDiscoveryCallback): Timer{
+        var singleLookUp = true
+        val timer = Timer()
+        timer.scheduleAtFixedRate(object: TimerTask(){
+            override fun run() {
+                val discoveryOptions: DiscoveryOptions = DiscoveryOptions.Builder().setStrategy(if(singleLookUp)Strategy.P2P_POINT_TO_POINT else Strategy.P2P_STAR).build()
+                Nearby.getConnectionsClient(context).stopDiscovery()
+                Nearby.getConnectionsClient(context)
+                    .startDiscovery(values.nearby_advertise, endpointDiscoveryCallback, discoveryOptions)
+                    .addOnCompleteListener {
+                        singleLookUp = !singleLookUp
+                    }
+                    .addOnSuccessListener {
+
+                    }
+                    .addOnFailureListener {
+
+                    }
             }
-            .addOnSuccessListener {
-                DISCOVERING = true
-                discover_start()
-                println("Discover started successfully")
-            }
-            .addOnFailureListener {
-                DISCOVERING = false
-                discover_stop()
-                println("Discover failed "+it.message)
-            }
+        },0,10000)
+        return timer
     }
 
 
 
-
-
     companion object {
-        lateinit var instance : DiscoverService
-        var DISCOVERING = false
-        var discover_start: () -> Unit = {}
-        var discover_stop: () -> Unit = {}
+        lateinit var instance : LookupService
         var endpoint_updated: () -> Unit = {}
         lateinit var discover_id : String
         var endpoints = ArrayList<EndpointInfo>()

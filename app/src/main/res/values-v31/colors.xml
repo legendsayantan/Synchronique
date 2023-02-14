@@ -8,4 +8,5 @@
     <color name="accent1_500">@android:color/system_accent1_500</color>
     <color name="accent1_600">@android:color/system_accent1_600</color>
     <color name="accent1_700">@android:color/system_accent1_700</color>
+    <color name="accent1_800">@android:color/system_accent1_800</color>
 </resources>

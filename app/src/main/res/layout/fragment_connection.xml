@@ -15,6 +15,218 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical" >
+
+            <com.google.android.material.card.MaterialCardView
+                app:cardBackgroundColor="?attr/backgroundColor"
+                app:cardCornerRadius="25dp"
+                android:layout_margin="25dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="3dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:layout_marginHorizontal="25dp"
+                        android:layout_marginVertical="10dp"
+                        android:textSize="15sp"
+                        android:text="Connected Device: " />
+
+
+
+                    <LinearLayout
+                        android:layout_marginBottom="25dp"
+                        android:layout_marginHorizontal="25dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:orientation="horizontal">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/name"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Advertiser"
+                                    android:textSize="25sp"
+                                    android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/hash"
+                                    android:layout_width="match_parent"
+                                    android:gravity="start"
+                                    android:textSize="25sp"
+                                    android:layout_height="wrap_content"
+                                    android:typeface="monospace"
+                                    android:text="Advertiseruid" />
+                            </LinearLayout>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/linkBtn"
+                                app:cardBackgroundColor="?attr/backgroundColor"
+                                app:cardCornerRadius="15dp"
+                                app:strokeColor="?attr/colorPrimary"
+                                app:strokeWidth="3dp"
+                                android:layout_width="50dp"
+                                android:layout_height="50dp">
+
+
+
+                                <ImageView
+                                    android:layout_margin="5dp"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:src="@drawable/baseline_close_24" />
+
+                            </com.google.android.material.card.MaterialCardView>
+
+
+                        </LinearLayout>
+
+
+
+
+
+
+
+                        <com.google.android.material.card.MaterialCardView
+                            app:cardBackgroundColor="?attr/backgroundColor"
+                            app:cardCornerRadius="15dp"
+                            android:layout_marginTop="25dp"
+                            app:strokeColor="?attr/colorPrimary"
+                            app:strokeWidth="3dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:gravity="center"
+                                    android:textSize="20sp"
+                                    android:layout_marginTop="10dp"
+                                    android:text="Provided Access" />
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:padding="15dp"
+                                    android:orientation="vertical">
+
+                                    <LinearLayout
+                                        android:id="@+id/media_access"
+                                        android:layout_marginVertical="10dp"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:gravity="center"
+                                        android:orientation="horizontal">
+
+                                        <ImageView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginEnd="10dp"
+                                            android:src="@drawable/baseline_play_circle_outline_24" />
+
+                                        <TextView
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:textColor="?attr/colorPrimary"
+                                            android:text="Media Controls"
+                                            android:textSize="14sp" />
+                                    </LinearLayout>
+                                    <LinearLayout
+                                        android:id="@+id/audio_access"
+                                        android:layout_marginVertical="10dp"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:gravity="center"
+                                        android:orientation="horizontal">
+
+                                        <ImageView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginEnd="10dp"
+                                            android:src="@drawable/baseline_music_note_24" />
+
+                                        <TextView
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:textColor="?attr/colorPrimary"
+                                            android:text="Audio Stream"
+                                            android:textSize="14sp" />
+                                    </LinearLayout>
+                                    <LinearLayout
+                                        android:id="@+id/shutter_access"
+                                        android:layout_marginVertical="10dp"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:gravity="center"
+                                        android:orientation="horizontal">
+
+                                        <ImageView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginEnd="10dp"
+                                            android:src="@drawable/baseline_camera_24" />
+
+                                        <TextView
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:textColor="?attr/colorPrimary"
+                                            android:text="Remote Shutter"
+                                            android:textSize="14sp" />
+                                    </LinearLayout>
+                                    <LinearLayout
+                                        android:id="@+id/noti_access"
+                                        android:layout_marginVertical="10dp"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:gravity="center"
+                                        android:orientation="horizontal">
+
+                                        <ImageView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginEnd="10dp"
+                                            android:src="@drawable/baseline_notifications_24" />
+
+                                        <TextView
+                                            android:id="@+id/media"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:textColor="?attr/colorPrimary"
+                                            android:text="Remote notifications"
+                                            android:textSize="14sp" />
+                                    </LinearLayout>
+                                </LinearLayout>
+
+                            </LinearLayout>
+
+                        </com.google.android.material.card.MaterialCardView>
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
             <com.google.android.material.card.MaterialCardView
                 app:cardBackgroundColor="?attr/backgroundColor"
                 app:cardCornerRadius="25dp"
@@ -36,7 +248,7 @@
                         android:layout_marginHorizontal="25dp"
                         android:layout_marginVertical="10dp"
                         android:textSize="15sp"
-                        android:text="Nearby Advertisers: " />
+                        android:text="Nearby: " />
 
                     <ListView
                         android:id="@+id/advertiser_list"
@@ -44,35 +256,11 @@
                         android:layout_marginBottom="25dp"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView
-                app:cardBackgroundColor="?attr/backgroundColor"
-                app:cardCornerRadius="25dp"
-                android:layout_marginHorizontal="25dp"
-                app:strokeColor="?attr/colorPrimary"
-                app:strokeWidth="3dp"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-                <LinearLayout
-                    android:orientation="vertical"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textStyle="bold"
-                        android:layout_marginHorizontal="25dp"
-                        android:layout_marginVertical="10dp"
-                        android:textSize="15sp"
-                        android:text="Connected Devices: " />
+                        android:layout_height="wrap_content">
 
-                    <ListView
-                        android:id="@+id/device_list"
-                        android:layout_marginHorizontal="25dp"
-                        android:layout_marginBottom="25dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

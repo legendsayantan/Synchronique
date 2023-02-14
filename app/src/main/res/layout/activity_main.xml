@@ -9,15 +9,15 @@
     <me.ibrahimsn.lib.SmoothBottomBar
         android:id="@+id/bottomBar"
         android:layout_width="match_parent"
-        android:layout_height="65dp"
-        app:backgroundColor="@color/accent1_600"
+        android:layout_height="60dp"
+        app:backgroundColor="?attr/colorOnBackground"
         app:layout_constraintBottom_toBottomOf="parent"
         app:menu="@menu/menu_nav" />
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragmentContainerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="65dp">
+        android:layout_marginBottom="60dp">
 
     </androidx.fragment.app.FragmentContainerView>
 

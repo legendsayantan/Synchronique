@@ -1,100 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="?attr/backgroundColor"
+    android:clipChildren="false"
     tools:context=".fragments.HomeFragment">
 
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:clipChildren="false">
 
         <LinearLayout
+            android:id="@+id/homeList"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" >
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:animateLayoutChanges="true"
+            android:orientation="vertical">
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/welcomeCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="25dp"
                 app:cardBackgroundColor="?attr/backgroundColor"
                 app:cardCornerRadius="25dp"
-                app:strokeWidth="3dp"
-                android:layout_margin="25dp"
                 app:strokeColor="?attr/colorPrimary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                app:strokeWidth="3dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="horizontal">
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:gravity="center"
                         android:layout_weight="1"
-                        android:paddingStart="25dp"
+                        android:gravity="center"
+                        android:orientation="vertical"
                         android:paddingVertical="15dp"
-                        android:orientation="vertical">
+                        android:paddingStart="25dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textSize="14sp"
-                            android:text="Welcome" />
+                            android:text="Welcome"
+                            android:textSize="14sp" />
 
                         <TextView
                             android:id="@+id/textname"
                             android:layout_width="match_parent"
-                            android:textSize="22sp"
-                            android:textColor="?attr/colorPrimary"
                             android:layout_height="wrap_content"
-                            android:text="" />
+                            android:text="Name"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="22sp" />
+
                         <TextView
                             android:id="@+id/hash"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textSize="15sp"
-                            android:typeface="monospace"
+                            android:text="Identity hash"
                             android:textColor="?attr/colorPrimary"
-                            android:text="Identity hash" />
+                            android:textSize="15sp"
+                            android:typeface="monospace" />
                     </LinearLayout>
+
                     <ImageView
                         android:id="@+id/signOut"
-                        android:layout_weight="0"
-                        android:src="@drawable/baseline_logout_24"
                         android:layout_width="30dp"
-                        android:layout_marginEnd="25dp"
                         android:layout_height="match_parent"
-                        app:tint="?attr/colorPrimary" />
+                        android:layout_marginEnd="25dp"
+                        android:layout_weight="0"
+                        android:src="@drawable/baseline_logout_24" />
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/permissionCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="25dp"
                 app:cardBackgroundColor="?attr/backgroundColor"
                 app:cardCornerRadius="25dp"
-                app:strokeWidth="3dp"
-                android:layout_marginHorizontal="25dp"
                 app:strokeColor="?attr/colorPrimary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                app:strokeWidth="3dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
                     android:layout_weight="1"
-                    android:padding="25dp"
-                    android:paddingVertical="15dp"
-                    android:orientation="vertical">
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="25dp"
+                    android:paddingVertical="15dp">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="14sp"
                         android:layout_marginBottom="10dp"
-                        android:text="Necessary permissions -" />
+                        android:text="Necessary permissions -"
+                        android:textSize="14sp" />
 
                     <Switch
                         android:id="@+id/locPermission"
@@ -112,24 +123,25 @@
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/networkCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="25dp"
                 app:cardBackgroundColor="?attr/backgroundColor"
                 app:cardCornerRadius="25dp"
-                app:strokeWidth="3dp"
-                android:layout_marginHorizontal="25dp"
                 app:strokeColor="?attr/colorPrimary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                app:strokeWidth="3dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
                     android:layout_weight="1"
-                    android:padding="25dp"
-                    android:paddingVertical="15dp"
-                    android:orientation="vertical">
-
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="25dp"
+                    android:paddingVertical="15dp">
 
 
                     <LinearLayout
@@ -137,154 +149,368 @@
                         android:layout_height="match_parent"
                         android:orientation="horizontal">
                         <TextView
+                            android:id="@+id/textView"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Status - " />
+                        <TextView
+                            android:id="@+id/networkText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textSize="14sp"
-                            android:layout_weight="1"
-                            android:id="@+id/networkText"
                             android:layout_marginBottom="10dp"
-                            android:text="Network - Loading..." />
+                            android:layout_weight="1"
+                            android:text="Idle"
+                            android:textSize="14sp" />
+
+
 
                     </LinearLayout>
 
-                    <Switch
-                        android:id="@+id/background"
+                    <CheckBox
+                        android:id="@+id/multidevice"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Run in Background" />
+                        android:layout_height="20dp"
+                        android:text="Multi-connection support" />
+
                     <LinearLayout
-                        android:orientation="horizontal"
                         android:layout_width="match_parent"
-                        android:gravity="center"
-                        android:layout_marginTop="10dp"
-                        android:layout_height="wrap_content">
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/killNetwork"
-                            app:cardCornerRadius="5dp"
-                            app:strokeWidth="1dp"
-                            app:cardBackgroundColor="?attr/backgroundColor"
-                            app:strokeColor="?attr/colorPrimary"
+                        android:layout_height="match_parent"
+                        android:gravity="end|center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/imageNoti"
+                            android:layout_marginHorizontal="5dp"
                             android:layout_width="wrap_content"
-                            android:layout_height="25dp">
-                            <TextView
-                                android:id="@+id/killText"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/baseline_notifications_24" />
+                        <ImageView
+                            android:id="@+id/imageShutter"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/baseline_camera_24" />
+
+                        <ImageView
+                            android:id="@+id/imageAudio"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/baseline_music_note_24" />
+
+                        <ImageView
+                            android:id="@+id/imageSync"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/baseline_play_circle_outline_24" />
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/startBtn"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_marginStart="10dp"
+                            app:cardBackgroundColor="?attr/backgroundColor"
+                            app:cardCornerRadius="15dp"
+                            app:strokeColor="?attr/colorPrimary"
+                            app:strokeWidth="3dp">
+
+                            <ImageView
+                                android:layout_margin="5dp"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                android:textSize="14sp"
-                                android:layout_marginHorizontal="10dp"
-                                android:textStyle="bold"
-                                android:gravity="center"
-                                android:text="STOP" />
+                                android:src="@drawable/baseline_play_arrow_24"
+                                app:tint="?attr/colorPrimary" />
                         </com.google.android.material.card.MaterialCardView>
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/killApp"
-                            app:cardCornerRadius="5dp"
-                            app:strokeWidth="1dp"
-                            android:layout_gravity="end"
-                            android:layout_marginStart="25dp"
-                            app:cardBackgroundColor="?attr/backgroundColor"
-                            app:strokeColor="?attr/colorPrimary"
-                            android:layout_width="wrap_content"
-                            android:layout_height="25dp">
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:textSize="14sp"
-                                android:layout_marginHorizontal="10dp"
-                                android:textStyle="bold"
-                                android:gravity="center"
-                                android:text="Stop Everything" />
-                        </com.google.android.material.card.MaterialCardView>
+
+
+
+
                     </LinearLayout>
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/mediaCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="25dp"
+                android:layout_marginTop="25dp"
                 app:cardBackgroundColor="?attr/backgroundColor"
                 app:cardCornerRadius="25dp"
-                app:strokeWidth="3dp"
-                android:layout_marginTop="25dp"
-                android:layout_marginHorizontal="25dp"
                 app:strokeColor="?attr/colorPrimary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                app:strokeWidth="3dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
                     android:layout_weight="1"
-                    android:padding="25dp"
-                    android:paddingVertical="15dp"
-                    android:orientation="vertical">
-
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="25dp"
+                    android:paddingVertical="15dp">
 
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
+                        android:gravity="center"
                         android:orientation="horizontal">
-                        <TextView
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:src="@drawable/baseline_play_circle_outline_24" />
+
+                        <Switch
+                            android:id="@+id/media"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textSize="14sp"
                             android:layout_weight="1"
-                            android:text="Media Share" />
+                            android:textColor="?attr/colorPrimary"
+                            android:text="Media Controller"
+                            android:textSize="14sp" />
                     </LinearLayout>
-
-                    <RadioGroup
-                        android:id="@+id/mediaRadio"
+                    <LinearLayout
+                        android:orientation="vertical"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent" >
-
-                        <RadioButton
-                            android:id="@+id/radioSync"
+                        android:layout_height="match_parent">
+                        <CheckBox
+                            android:id="@+id/media_client_only"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Sync (requires manual playback)" />
-                        <RadioButton
-                            android:id="@+id/radioStream"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Stream (Android Version >= 10)" />
+                            android:text="Control media on client(s) only"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/audioCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="25dp"
+                android:layout_marginTop="25dp"
+                app:cardBackgroundColor="?attr/backgroundColor"
+                app:cardCornerRadius="25dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="3dp">
 
-                           </RadioGroup>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="25dp"
+                    android:paddingVertical="15dp">
+
 
                     <LinearLayout
-                        android:id="@+id/streamLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:src="@drawable/baseline_music_note_24" />
+
+                        <Switch
+                            android:id="@+id/audio"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textColor="?attr/colorPrimary"
+                            android:text="Audio Stream"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical">
-                        <LinearLayout
+
+
+                        <RadioGroup
                             android:orientation="horizontal"
-                            android:gravity="center"
-                            android:layout_marginBottom="5dp"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content">
+                            android:layout_height="match_parent" >
+
+                            <RadioButton
+                                android:id="@+id/audio_internal"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="System Audio" />
+
+                            <RadioButton
+                                android:id="@+id/audio_mic"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:checked="true"
+                                android:text="Mic Audio" />
+                        </RadioGroup>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginVertical="5dp"
+                            android:gravity="center"
+                            android:orientation="horizontal">
+
                             <TextView
-                                android:text="Stream Quality"
                                 android:layout_width="wrap_content"
-                                android:layout_height="match_parent"/>
+                                android:layout_height="match_parent"
+                                android:text="Stream Quality" />
+
                             <SeekBar
                                 android:id="@+id/quality"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:min="8"
-                                android:max="44"
                                 android:layout_weight="1"
-                                android:progress="1" />
+                                android:max="44"
+                                android:min="8"
+                                android:progress="8" />
+
                             <TextView
                                 android:id="@+id/seekValue"
-                                android:text="8"
                                 android:layout_width="wrap_content"
-                                android:layout_height="match_parent"/>
+                                android:layout_height="match_parent"
+                                android:text="8" />
+
                             <TextView
-                                android:text=" KHz"
                                 android:layout_width="wrap_content"
-                                android:layout_height="match_parent"/>
+                                android:layout_height="match_parent"
+                                android:text=" KHz" />
                         </LinearLayout>
+
+
+
 
                     </LinearLayout>
 
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cameraCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="25dp"
+                android:layout_marginTop="25dp"
+                app:cardBackgroundColor="?attr/backgroundColor"
+                app:cardCornerRadius="25dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="3dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="25dp"
+                    android:paddingVertical="15dp">
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:src="@drawable/baseline_camera_24" />
+
+                        <Switch
+                            android:id="@+id/shutter"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textColor="?attr/colorPrimary"
+                            android:text="Remote Shutter"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+
+
+
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/notiCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="25dp"
+                android:layout_marginTop="25dp"
+                app:cardBackgroundColor="?attr/backgroundColor"
+                app:cardCornerRadius="25dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="3dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="25dp"
+                    android:paddingVertical="15dp">
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:src="@drawable/baseline_notifications_24" />
+
+                        <Switch
+                            android:id="@+id/noti"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textColor="?attr/colorPrimary"
+                            android:text="Remote Notifications"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+
+                        <LinearLayout
+                            android:id="@+id/notiLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical">
+
+                            <CheckBox
+                                android:id="@+id/noti_reply"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Allow replies" />
+                        </LinearLayout>
+
+
+
+
+                    </LinearLayout>
 
 
                 </LinearLayout>

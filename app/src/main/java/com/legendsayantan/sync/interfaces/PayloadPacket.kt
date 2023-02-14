@@ -13,17 +13,17 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
         }
         private fun fromJson(json:String): PayloadPacket {
             val packet = Gson().fromJson(json, PayloadPacket::class.java)
+            if(packet.payloadType == PayloadType.CONFIG_PACKET){
+                packet.data = Gson().fromJson(Gson().toJson(packet.data), ClientConfig::class.java)
+            }
             if(packet.payloadType == PayloadType.MEDIA_PACKET){
                 packet.data = Gson().fromJson(Gson().toJson(packet.data), MediaPacket::class.java)
-            }
-            if(packet.payloadType == PayloadType.AUDIO_PACKET){
-                packet.data = Gson().fromJson(Gson().toJson(packet.data), Int::class.java)
             }
             return packet
         }
         enum class PayloadType{
+            CONFIG_PACKET,
             MEDIA_PACKET,
-            AUDIO_PACKET,
             DISCONNECT,
         }
         fun toEncBytes(data: PayloadPacket): ByteArray {

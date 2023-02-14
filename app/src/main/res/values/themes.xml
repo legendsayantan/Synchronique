@@ -2,17 +2,19 @@
     <!-- Base application theme. -->
     <style name="Theme.Synchronique" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/accent1_500</item>
-        <item name="colorPrimaryVariant">@color/accent1_700</item>
+        <item name="colorPrimary">@color/accent1_600</item>
+        <item name="colorPrimaryVariant">@color/accent1_800</item>
         <item name="colorOnPrimary">@color/white</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/accent1_200</item>
-        <item name="colorSecondaryVariant">@color/accent1_700</item>
+        <item name="colorSecondary">@color/accent1_300</item>
+        <item name="colorSecondaryVariant">@color/accent1_800</item>
         <item name="colorOnSecondary">@color/neutral1_800</item>
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">@color/accent1_600</item>
+        <item name="android:statusBarColor">@color/accent1_400</item>
+        <item name="colorOnBackground">@color/accent1_400</item>
         <!-- Customize your theme here. -->
-        <item name="backgroundColor">@color/accent1_200</item>
+        <item name="backgroundColor">@color/accent1_100</item>
         <item name="android:textColor">@color/neutral1_800</item>
+        <item name="android:tint">@color/accent1_500</item>
     </style>
 </resources>

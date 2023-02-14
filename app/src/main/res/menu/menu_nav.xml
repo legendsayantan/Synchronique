@@ -9,10 +9,10 @@
     <item
         android:id="@+id/item1"
         android:title="@string/menu_link"
-        android:icon="@drawable/baseline_link_24"/>
+        android:icon="@drawable/baseline_search_24"/>
     <item
         android:id="@+id/item2"
         android:title="@string/menu_allow"
-        android:icon="@drawable/baseline_checklist_24"/>
+        android:icon="@drawable/baseline_explore_24"/>
 
 </menu>

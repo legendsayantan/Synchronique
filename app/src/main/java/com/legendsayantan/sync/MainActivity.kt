@@ -4,21 +4,15 @@ import EncryptionManager
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.ColorDrawable
 import android.location.LocationManager
-import android.media.AudioFormat
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -34,16 +28,16 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import com.legendsayantan.sync.fragments.AllowlistFragment
+import com.legendsayantan.sync.fragments.ExploreFragment
 import com.legendsayantan.sync.fragments.ConnectionFragment
 import com.legendsayantan.sync.fragments.HomeFragment
 import com.legendsayantan.sync.fragments.LoginFragment
 import com.legendsayantan.sync.interfaces.EndpointInfo
-import com.legendsayantan.sync.services.AdvertiserService
-import com.legendsayantan.sync.services.DiscoverService
-import com.legendsayantan.sync.services.MediaService
-import com.legendsayantan.sync.services.SingularConnectionService
-import com.legendsayantan.sync.views.AppDialog
+import com.legendsayantan.sync.services.*
+import com.legendsayantan.sync.views.ConnectionDialog
+import com.legendsayantan.sync.workers.CardAnimator
+import com.legendsayantan.sync.workers.Notifications
+import com.legendsayantan.sync.workers.Values
 import me.ibrahimsn.lib.SmoothBottomBar
 import kotlin.system.exitProcess
 
@@ -52,37 +46,41 @@ class MainActivity : AppCompatActivity() {
     private var bottomAppBar: SmoothBottomBar? = null
     private lateinit var firebaseAuth: FirebaseAuth
     private val RC_SIGN_IN = 1001
-
+    lateinit var cardAnimator: CardAnimator
+    lateinit var values : Values
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        supportActionBar?.setBackgroundDrawable(ColorDrawable(resources.getColor(R.color.accent1_600)))
+        cardAnimator = CardAnimator(this)
+        supportActionBar?.setBackgroundDrawable(ColorDrawable(window.statusBarColor))
         bottomAppBar = findViewById(R.id.bottomBar);
         firebaseAuth = Firebase.auth
-    }
-
-    override fun onResume() {
-        super.onResume()
-        instance = this
+        Notifications(this)
+        values = Values(this)
         if (Firebase.auth.currentUser == null) {
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainerView, LoginFragment()).commit()
         } else {
             checkPermissions()
             loginSuccess()
-
         }
+    }
+    override fun onResume() {
+        super.onResume()
+        instance = this
+        checkPermissions()
+        HomeFragment.latestInstance?.refreshFragment()
     }
 
     override fun onPause() {
         super.onPause()
         instance = null
-        stopService(Intent(this, DiscoverService::class.java))
-        if (SingularConnectionService.CONNECTED) {
-            stopService(Intent(this, AdvertiserService::class.java))
+        stopService(Intent(this, LookupService::class.java))
+        if (ClientService.CONNECTED) {
+            stopService(Intent(this, WaitForConnectionService::class.java))
         } else {
-            startForegroundService(Intent(this, AdvertiserService::class.java))
+            //startForegroundService(Intent(this, AdvertiserService::class.java))
         }
     }
 
@@ -105,7 +103,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 2 -> {
                     supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainerView, AllowlistFragment()).commit()
+                        .replace(R.id.fragmentContainerView, ExploreFragment()).commit()
                     supportActionBar?.title = getString(R.string.menu_allow);
                 }
             }
@@ -248,65 +246,28 @@ class MainActivity : AppCompatActivity() {
     fun startFromNotification(intent: Intent) {
         if (intent.hasExtra("endpointName")) {
             val x = intent.getStringExtra("endpointName").toString().split("_")
-            var endpoint =
+            val endpoint =
                 EndpointInfo(intent.getStringExtra("endpointId").toString(), x[0], x[1], null)
             println("------------- x ----------------")
             println(x)
             println("------------- x ----------------")
 
-            AppDialog(this,
-                "Request Details",
+            ConnectionDialog(this,
+                "Connection Details",
                 endpoint.name.toString(),
                 endpoint.uidHash,
                 "Accept",
-                arrayFrom(x[2]),
-                { ints: ArrayList<Int>, appDialog: AppDialog ->
-                    if (ints.contains(0)) { //Media access
-                        if (getSharedPreferences("default", MODE_PRIVATE).getBoolean(
-                                "streamMedia",
-                                Build.VERSION.SDK_INT > Build.VERSION_CODES.P
-                            )
-                        ) {
-                            if (ActivityCompat.checkSelfPermission(
-                                    this,
-                                    Manifest.permission.RECORD_AUDIO
-                                ) != PackageManager.PERMISSION_GRANTED
-                            ) {
-                                ActivityCompat.requestPermissions(
-                                    this,
-                                    arrayOf(Manifest.permission.RECORD_AUDIO),
-                                    102
-                                )
-                                return@AppDialog
-                            }
-                        } else if (!NotificationManagerCompat.getEnabledListenerPackages(this)
-                                .contains(this.packageName)
-                        ) {
-                            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                            Toast.makeText(
-                                this,
-                                "Please enable notification access for ${getString(R.string.app_name)}",
-                                Toast.LENGTH_SHORT
-                            ).show();
-                            return@AppDialog
-                        }
-                    }
-                    SingularConnectionService.connectionUpdate =
-                        { if (SingularConnectionService.CONNECTED) appDialog.hide(); }
-                    SingularConnectionService.ENDPOINT_ID = endpoint.endpointId
-                    SingularConnectionService.ENDPOINT_NAME = endpoint.name.toString()
-                    SingularConnectionService.CONNECTION_MODE =
-                        SingularConnectionService.Companion.ConnectionMode.ACCEPT
-                    SingularConnectionService.ENDPOINT_HASH = endpoint.uidHash
-                    SingularConnectionService.ACCESS = ints
-                    val intent = Intent(applicationContext, SingularConnectionService::class.java)
-                    startForegroundService(intent)
+                {
+                    print("------------- endpoint ----------------")
+                    Values.connectedClients.add(endpoint)
+                    print("------------- connectedClients ----------------")
+                    print(Values.connectedClients)
                 },
-                { Nearby.getConnectionsClient(this).rejectConnection(endpoint.endpointId) }).show()
+                { Nearby.getConnectionsClient(this).rejectConnection(endpoint.id) }).show()
         }
     }
 
-    fun arrayFrom(str: String): ArrayList<Int> {
+/*    fun arrayFrom(str: String): ArrayList<Int> {
         var data = str
         if (data.startsWith("[") && data.endsWith("]")) {
             data = data.substring(1, data.lastIndex - 1)
@@ -317,7 +278,7 @@ class MainActivity : AppCompatActivity() {
             out.add(s.toInt())
         }
         return out
-    }
+    }*/
 
     companion object {
         var bluetoothAccess: Boolean = false

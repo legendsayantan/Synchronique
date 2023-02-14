@@ -2,9 +2,7 @@ package com.legendsayantan.sync.services
 
 import EncryptionManager
 import android.app.*
-import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
 import android.widget.Toast
@@ -13,47 +11,31 @@ import com.google.android.gms.nearby.connection.*
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
+import com.legendsayantan.sync.interfaces.ServerConfig
+import com.legendsayantan.sync.workers.Notifications
+import com.legendsayantan.sync.workers.Values
 
-class AdvertiserService : Service() {
+class WaitForConnectionService : Service() {
 
-    lateinit var SERVICE_ID: String
+
     lateinit var notificationManager: NotificationManager
-    lateinit var notificationChannel: NotificationChannel
     lateinit var builder: Notification.Builder
     var noticount = 0;
+    lateinit var values: Values
     override fun onBind(intent: Intent): IBinder {
         return null!!
     }
 
     override fun onCreate() {
-        super.onCreate()
         instance = this
-        SERVICE_ID = "$packageName.advertise"
-        val chan = NotificationChannel(
-            SERVICE_ID,
-            "Advertiser Service",
-            NotificationManager.IMPORTANCE_NONE
-        )
-        chan.lightColor = Color.BLUE
-        chan.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-        val manager = (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
-        manager.createNotificationChannel(chan)
+        values = Values(applicationContext)
 
-        val notification = Notification.Builder(this, SERVICE_ID)
-            .setContentText("App is running in background")
+        val notification = Notification.Builder(this, Notifications.wait_channel)
+            .setContentTitle("Synchronique is ready")
+            .setContentText("Waiting for nearby devices to connect")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .build()
         startForeground(1, notification)
-        notificationChannel = NotificationChannel(
-            "$packageName.request",
-            "Requests",
-            NotificationManager.IMPORTANCE_HIGH
-        )
-        notificationChannel.enableLights(true)
-        notificationChannel.lightColor = Color.BLUE
-        notificationChannel.enableVibration(false)
-        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(notificationChannel)
         FirebaseAuth.getInstance().currentUser?.let { user ->
             EncryptionManager.fetchDynamicKey({
                 advertise_id =
@@ -62,10 +44,10 @@ class AdvertiserService : Service() {
                 println(advertise_id)
                 startAdvertising()
             }, {
-                Toast.makeText(applicationContext, "Could not advertise", Toast.LENGTH_SHORT).show()
                 it.printStackTrace()
             })
         }
+        super.onCreate()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -73,16 +55,15 @@ class AdvertiserService : Service() {
     }
 
     override fun onDestroy() {
-        ADVERTISING = false
+        Values.appState = Values.Companion.AppState.IDLE
         Nearby.getConnectionsClient(this).stopAdvertising()
-        advertise_update()
         super.onDestroy()
     }
 
     private fun startAdvertising() {
         val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
             override fun onConnectionResult(p0: String, p1: ConnectionResolution) {
-                advertise_update()
+                val endpoint = Values.connectedClients.find { it.id == p0 }
                 when (p1.status.statusCode) {
 
                     ConnectionsStatusCodes.STATUS_OK -> {
@@ -94,39 +75,31 @@ class AdvertiserService : Service() {
                     ConnectionsStatusCodes.STATUS_ERROR -> {
                         builder = Notification.Builder(
                             applicationContext,
-                            "${applicationContext.packageName}.request"
+                            Notifications.connection_channel
                         )
                             .setSmallIcon(R.drawable.ic_launcher_background)
                             .setContentTitle("Connection Error")
                             .setOngoing(false)
-                            .setContentText("Could not connect to ${SingularConnectionService.ENDPOINT_NAME}, Please retry.")
+                            .setContentText("Could not connect to ${endpoint?.name}, Please retry.")
                         notificationManager.notify(noticount, builder.build())
                         noticount++
-                        SingularConnectionService.CONNECTED = false
-                        SingularConnectionService.connectionUpdate()
-                        MediaService.instance?.transferThread?.interrupt()
-                        stopService(Intent(applicationContext, MediaService::class.java))
-                        stopService(Intent(applicationContext, SingularConnectionService::class.java))
                     }
                 }
             }
 
             override fun onDisconnected(p0: String) {
+                val endpoint = Values.connectedClients.find { it.id == p0 }
                 builder = Notification.Builder(
                     applicationContext,
-                    "${applicationContext.packageName}.request"
+                    Notifications.connection_channel
                 )
                     .setSmallIcon(R.drawable.ic_launcher_background)
                     .setContentTitle("Device Disconnected")
                     .setOngoing(false)
-                    .setContentText("${SingularConnectionService.ENDPOINT_NAME} was disconnected.")
+                    .setContentText("${endpoint?.name} was disconnected.")
                 notificationManager.notify(noticount, builder.build())
                 noticount++
-                SingularConnectionService.CONNECTED = false
-                SingularConnectionService.connectionUpdate()
-                MediaService.instance?.transferThread?.interrupt()
-                stopService(Intent(applicationContext, MediaService::class.java))
-                stopService(Intent(applicationContext, SingularConnectionService::class.java))
+                Values.connectedClients.remove(endpoint)
             }
 
             override fun onConnectionInitiated(p0: String, p1: ConnectionInfo) {
@@ -134,8 +107,8 @@ class AdvertiserService : Service() {
 
                 EncryptionManager.fetchDynamicKey({
                     //set pendingintent for mainactivity
-                    var name = EncryptionManager().decrypt(p1.endpointName, it);
-                    var intent = Intent(
+                    val name = EncryptionManager().decrypt(p1.endpointName, it);
+                    val intent = Intent(
                         applicationContext,
                         MainActivity::class.java
                     ).putExtra("endpointName", name).putExtra("endpointId", p0)
@@ -146,10 +119,9 @@ class AdvertiserService : Service() {
                             applicationContext, 0, intent,
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
                         )
-                        builder = Notification.Builder(applicationContext, "$packageName.request")
+                        builder = Notification.Builder(applicationContext, Notifications.connection_channel)
                             .setSmallIcon(R.drawable.ic_launcher_background)
-                            .setContentTitle("New link request")
-                            .setContentText("Accept to link with " + name.replace("_", " -> "))
+                            .setContentTitle(name.split("_")[0]+" wants to connect to this device.")
                             .setContentIntent(pendingIntent)
                         notificationManager.notify(noticount, builder.build())
                         noticount++
@@ -158,34 +130,29 @@ class AdvertiserService : Service() {
                     }
 
                 }, {
-                    Toast.makeText(applicationContext, "Could not validate auth, check your internet connection", Toast.LENGTH_LONG).show()
+                    Toast.makeText(applicationContext, "Could not validate authenticaton, check your internet connection", Toast.LENGTH_LONG).show()
                 })
 
             }
         }
         val advertisingOptions: AdvertisingOptions = AdvertisingOptions.Builder().setStrategy(
-            Strategy.P2P_POINT_TO_POINT
+            values.networkStrategy
         ).build()
         Nearby.getConnectionsClient(applicationContext)
             .startAdvertising(
-                advertise_id, SERVICE_ID, connectionLifecycleCallback, advertisingOptions
+                advertise_id, values.nearby_advertise, connectionLifecycleCallback, advertisingOptions
             )
             .addOnSuccessListener {
-                println("Advertising started successfully")
-                ADVERTISING = true
-                advertise_update()
+                Values.appState = Values.Companion.AppState.WAITING
             }
             .addOnFailureListener {
-                println("Advertising failed " + it.message)
-                ADVERTISING = false
-                advertise_update()
+                Values.appState = Values.Companion.AppState.IDLE
             }
     }
 
     companion object {
-        lateinit var instance: AdvertiserService
-        var ADVERTISING = false
-        var advertise_update: () -> Unit = {}
+        lateinit var instance: WaitForConnectionService
         lateinit var advertise_id: String
+        lateinit var serverConfig: ServerConfig
     }
 }
