@@ -29,8 +29,8 @@ class WaitForConnectionService : Service() {
     override fun onCreate() {
         instance = this
         values = Values(applicationContext)
-
-        val notification = Notification.Builder(this, Notifications.wait_channel)
+        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notification = Notification.Builder(this, Notifications(applicationContext).wait_channel)
             .setContentTitle("Synchronique is ready")
             .setContentText("Waiting for nearby devices to connect")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -41,7 +41,7 @@ class WaitForConnectionService : Service() {
                 advertise_id =
                     EncryptionManager().encrypt(user.displayName + "_" + user.uid.hashCode(), it)
                 println("------------ADVERTISE ID----------------")
-                println(advertise_id)
+                println("$advertise_id ---------------- $it")
                 startAdvertising()
             }, {
                 it.printStackTrace()
@@ -75,7 +75,7 @@ class WaitForConnectionService : Service() {
                     ConnectionsStatusCodes.STATUS_ERROR -> {
                         builder = Notification.Builder(
                             applicationContext,
-                            Notifications.connection_channel
+                            Notifications(applicationContext).connection_channel
                         )
                             .setSmallIcon(R.drawable.ic_launcher_background)
                             .setContentTitle("Connection Error")
@@ -91,7 +91,7 @@ class WaitForConnectionService : Service() {
                 val endpoint = Values.connectedClients.find { it.id == p0 }
                 builder = Notification.Builder(
                     applicationContext,
-                    Notifications.connection_channel
+                    Notifications(applicationContext).connection_channel
                 )
                     .setSmallIcon(R.drawable.ic_launcher_background)
                     .setContentTitle("Device Disconnected")
@@ -106,7 +106,6 @@ class WaitForConnectionService : Service() {
                 //show a notification
 
                 EncryptionManager.fetchDynamicKey({
-                    //set pendingintent for mainactivity
                     val name = EncryptionManager().decrypt(p1.endpointName, it);
                     val intent = Intent(
                         applicationContext,
@@ -119,8 +118,8 @@ class WaitForConnectionService : Service() {
                             applicationContext, 0, intent,
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
                         )
-                        builder = Notification.Builder(applicationContext, Notifications.connection_channel)
-                            .setSmallIcon(R.drawable.ic_launcher_background)
+                        builder = Notification.Builder(applicationContext, Notifications(applicationContext).connection_channel)
+                            .setSmallIcon(R.drawable.ic_launcher_foreground)
                             .setContentTitle(name.split("_")[0]+" wants to connect to this device.")
                             .setContentIntent(pendingIntent)
                         notificationManager.notify(noticount, builder.build())
@@ -153,6 +152,6 @@ class WaitForConnectionService : Service() {
     companion object {
         lateinit var instance: WaitForConnectionService
         lateinit var advertise_id: String
-        lateinit var serverConfig: ServerConfig
+        var serverConfig: ServerConfig? = null
     }
 }

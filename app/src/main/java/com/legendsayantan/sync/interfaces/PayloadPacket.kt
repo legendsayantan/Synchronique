@@ -16,14 +16,18 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
             if(packet.payloadType == PayloadType.CONFIG_PACKET){
                 packet.data = Gson().fromJson(Gson().toJson(packet.data), ClientConfig::class.java)
             }
-            if(packet.payloadType == PayloadType.MEDIA_PACKET){
-                packet.data = Gson().fromJson(Gson().toJson(packet.data), MediaPacket::class.java)
+            if(packet.payloadType == PayloadType.MEDIA_SYNC_PACKET){
+                packet.data = Gson().fromJson(Gson().toJson(packet.data), MediaSyncPacket::class.java)
+            }
+            if(packet.payloadType == PayloadType.MEDIA_ACTION_PACKET){
+                packet.data = Gson().fromJson(Gson().toJson(packet.data), MediaActionPacket::class.java)
             }
             return packet
         }
         enum class PayloadType{
             CONFIG_PACKET,
-            MEDIA_PACKET,
+            MEDIA_SYNC_PACKET,
+            MEDIA_ACTION_PACKET,
             DISCONNECT,
         }
         fun toEncBytes(data: PayloadPacket): ByteArray {

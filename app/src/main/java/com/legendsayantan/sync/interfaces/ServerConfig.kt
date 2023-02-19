@@ -1,5 +1,7 @@
 package com.legendsayantan.sync.interfaces
 
+import com.legendsayantan.sync.workers.Values
+
 /**
  * @author legendsayantan
  */
@@ -10,4 +12,8 @@ class ServerConfig(
     var audioMic: Boolean,
     var notiReply: Boolean
 ) {
+    constructor(values: Values) : this(values.multiDevice,
+        ClientConfig(values), values.mediaClientOnly, values.audioStreamMic, values.notiReply) {
+
+    }
 }

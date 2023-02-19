@@ -1,33 +1,35 @@
 package com.legendsayantan.sync.services
 
-import android.Manifest
 import android.app.Notification
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.media.session.PlaybackState.ACTION_PLAY_PAUSE
+import android.content.pm.ServiceInfo
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.IBinder
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.interfaces.EndpointInfo
 import com.legendsayantan.sync.interfaces.PayloadPacket
 import com.legendsayantan.sync.interfaces.ServerConfig
+import com.legendsayantan.sync.workers.AudioWorker
+import com.legendsayantan.sync.workers.MediaWorker
 import com.legendsayantan.sync.workers.Notifications
 import com.legendsayantan.sync.workers.Values
+import java.util.*
 
 class ServerService : Service() {
 
     lateinit var values: Values
     lateinit var serverConfig: ServerConfig
+    lateinit var mediaProjection: MediaProjection
+
+    var timer = Timer()
+    lateinit var mediaWorker : MediaWorker
+    lateinit var audioWorker: AudioWorker
     override fun onBind(intent: Intent): IBinder {
         return null!!
     }
@@ -36,19 +38,30 @@ class ServerService : Service() {
         super.onCreate()
         instance = this
         values = Values(applicationContext)
-        serverConfig = WaitForConnectionService.serverConfig
-        val notification = Notification.Builder(this, Notifications.server_channel)
-            .setContentTitle("Synchronique server is ready")
-            .setContentText("Connected to ${Values.connectedClients.size} devices")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .build()
-        startForeground(1, notification)
-        Values.onClientAdded = {
-            acceptConnection(Values.connectedClients[Values.connectedClients.size - 1])
+        serverConfig = if(WaitForConnectionService.serverConfig==null){
+            println("---------------------------------------------------------")
+            println("SERVERCONFIG NULL")
+            println("---------------------------------------------------------")
+            ServerConfig(Values(applicationContext))
+        }else WaitForConnectionService.serverConfig!!
+        if(serverConfig.clientConfig.audio && !serverConfig.audioMic){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val notification = Notification.Builder(this, Notifications(applicationContext).server_channel)
+                    .setContentTitle("Synchronique server is ready")
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .build()
+                startForeground(1, notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+            }
+        }else{
+            val notification = Notification.Builder(this, Notifications(applicationContext).server_channel)
+                .setContentTitle("Synchronique server is ready")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .build()
+            startForeground(1, notification)
         }
     }
 
-    private fun acceptConnection(endpointInfo: EndpointInfo) {
+    fun acceptConnection(endpointInfo: EndpointInfo) {
         Nearby.getConnectionsClient(this)
             .acceptConnection(endpointInfo.id, object : PayloadCallback() {
                 override fun onPayloadReceived(p0: String, p1: Payload) {
@@ -57,8 +70,6 @@ class ServerService : Service() {
                         println(String(p1.asBytes()!!))
                         Toast.makeText(applicationContext, "payload", Toast.LENGTH_SHORT).show()
                         if (PayloadPacket.fromEncBytes(p1.asBytes()!!).payloadType == PayloadPacket.Companion.PayloadType.DISCONNECT) {
-                            CONNECTED = false
-                            connectionUpdate()
                             Nearby.getConnectionsClient(applicationContext)
                                 .disconnectFromEndpoint(endpointInfo.id)
                             stopSelf()
@@ -86,16 +97,15 @@ class ServerService : Service() {
                     "Connected to ${endpointInfo.name}",
                     Toast.LENGTH_SHORT
                 ).show()
-                CONNECTED = true
-                connectionUpdate()
                 if (!serverConfig.multiDevice) stopService(
                     Intent(
                         applicationContext,
                         WaitForConnectionService::class.java
                     )
                 )
+                if(Values.appState!=Values.Companion.AppState.CONNECTED)initialiseServe()
                 //here comes the actual connection
-                /*Nearby.getConnectionsClient(applicationContext).sendPayload(
+                Nearby.getConnectionsClient(applicationContext).sendPayload(
                     endpointInfo.id,
                     Payload.fromBytes(
                         PayloadPacket.toEncBytes(
@@ -106,8 +116,12 @@ class ServerService : Service() {
                         )
                     )
                 ).addOnCompleteListener {
-                    startServingData()
-                }*/
+                    println("----------- appstate ------------")
+                    println(Values.appState)
+                    Values.connectedClients.add(endpointInfo)
+                    Values.appState = Values.Companion.AppState.CONNECTED
+                    serveDataTo(endpointInfo)
+                }
             }
             .addOnFailureListener {
                 Toast.makeText(
@@ -115,30 +129,16 @@ class ServerService : Service() {
                     "Failed to connect to ${endpointInfo.name}",
                     Toast.LENGTH_SHORT
                 ).show()
-                CONNECTED = false
-                connectionUpdate()
                 it.printStackTrace()
             }
     }
+    fun initMediaProjection(mediaProjectionManager: MediaProjectionManager, resultCode: Int, data: Intent){
+        mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
+    }
+
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-       /* when(intent?.action){
-            "play" -> {
-                Toast.makeText(applicationContext, "play", Toast.LENGTH_SHORT).show()
-            }
-            "prev" -> {
-                Toast.makeText(applicationContext, "prev", Toast.LENGTH_SHORT).show()
-            }
-            "next" -> {
-                Toast.makeText(applicationContext, "next", Toast.LENGTH_SHORT).show()
-            }
-            "rewind" -> {
-                Toast.makeText(applicationContext, "rewind", Toast.LENGTH_SHORT).show()
-            }
-            "ff" -> {
-                Toast.makeText(applicationContext, "forward", Toast.LENGTH_SHORT).show()
-            }
-        }*/
+        intent?.action?.let { mediaWorker.onMediaAction(it) }
         return START_STICKY
     }
 
@@ -153,62 +153,48 @@ class ServerService : Service() {
                 )
             ).addOnCompleteListener {
                 Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(endpoint.id)
-                stopService(Intent(applicationContext, MediaService::class.java))
             }
         }
         super.onDestroy()
     }
 
-/*    fun mediaControls() {
-        val playPauseIntent = Intent(this, ServerService::class.java)
-        playPauseIntent.action = "play"
-        val playPausePendingIntent = PendingIntent.getService(this, 0, playPauseIntent, PendingIntent.FLAG_IMMUTABLE)
 
-        val prevIntent = Intent(this, ServerService::class.java)
-        prevIntent.action = "prev"
-        val prevPendingIntent = PendingIntent.getService(this, 0, prevIntent, PendingIntent.FLAG_IMMUTABLE)
-
-        val nextIntent = Intent(this, ServerService::class.java)
-        nextIntent.action = "next"
-        val nextPendingIntent = PendingIntent.getService(this, 0, nextIntent, PendingIntent.FLAG_IMMUTABLE)
-
-        val rewindIntent = Intent(this, ServerService::class.java)
-        rewindIntent.action = "rewind"
-        val rewindPendingIntent = PendingIntent.getService(this, 0, rewindIntent, PendingIntent.FLAG_IMMUTABLE)
-
-        val ffIntent = Intent(this, ServerService::class.java)
-        ffIntent.action = "ff"
-        val ffPendingIntent = PendingIntent.getService(this, 0, ffIntent, PendingIntent.FLAG_IMMUTABLE)
-// Create the notification with media playback controls
-        val notification = Notification.Builder(this, Notifications.controls_channel)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Media Controls")
-            .addAction(R.drawable.baseline_fast_rewind_24, "Rewind", rewindPendingIntent)
-            .addAction(R.drawable.baseline_skip_previous_24, "Previous", prevPendingIntent)
-            .addAction(R.drawable.baseline_play_arrow_24, "Play/Pause", playPausePendingIntent)
-            .addAction(R.drawable.baseline_skip_next_24, "Next", nextPendingIntent)
-            .addAction(R.drawable.baseline_fast_forward_24, "Fast Forward", ffPendingIntent)
-            .build()
-
-// Show the notification
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationManager.notify(5, notification)
+    fun initialiseServe(){
+        println("initialise Serve")
+        if(serverConfig.clientConfig.media){
+            mediaWorker = MediaWorker(applicationContext)
+            mediaWorker.startMediaControls()
+            if(!values.mediaClientOnly)mediaWorker.syncTo()
+        }
+        if(serverConfig.clientConfig.audio){
+            if(serverConfig.audioMic){
+                audioWorker = AudioWorker(applicationContext, null,serverConfig.clientConfig.audioSample)
+                audioWorker.startAudioRecord()
+            }else{
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    initMediaProjection(mediaProjectionManager, resultCode, data)
+                    audioWorker = AudioWorker(applicationContext, mediaProjection,serverConfig.clientConfig.audioSample)
+                    audioWorker.startAudioStream()
+                }
+            }
         }
     }
-    fun startServingData(){
-        if(serverConfig.clientConfig.media)mediaControls()
+    fun serveDataTo(endpointInfo: EndpointInfo){
+        if(serverConfig.clientConfig.media){
+            mediaWorker.clientele.add(endpointInfo)
+        }
+        if(serverConfig.clientConfig.audio){
+            audioWorker.clientele.add(endpointInfo)
+        }
     }
-    */
+
+
 
 
     companion object {
-        lateinit var instance: ServerService
-        var CONNECTED = false
-        var connectionUpdate: () -> Unit = {}
+        var instance: ServerService? = null
+        lateinit var mediaProjectionManager: MediaProjectionManager
+        var resultCode: Int = 0
+        lateinit var data: Intent
     }
 }

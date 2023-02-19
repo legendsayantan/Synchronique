@@ -337,14 +337,6 @@
                             android:orientation="horizontal"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent" >
-
-                            <RadioButton
-                                android:id="@+id/audio_internal"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="System Audio" />
-
                             <RadioButton
                                 android:id="@+id/audio_mic"
                                 android:layout_width="match_parent"
@@ -352,6 +344,12 @@
                                 android:layout_weight="1"
                                 android:checked="true"
                                 android:text="Mic Audio" />
+                            <RadioButton
+                                android:id="@+id/audio_internal"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="System Audio" />
                         </RadioGroup>
 
                         <LinearLayout

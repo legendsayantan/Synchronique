@@ -8,6 +8,19 @@ import android.content.Context
  * @author legendsayantan
  */
 class Notifications(context: Context) {
+    var wait_channel : String
+    var lookup_channel : String
+    var connection_channel : String
+    var server_channel : String
+    var client_channel : String
+    var controls_channel: String
+
+    var wait : NotificationChannel
+    var lookup : NotificationChannel
+    var connection : NotificationChannel
+    var server : NotificationChannel
+    var client : NotificationChannel
+    var controls : NotificationChannel
     init {
         wait_channel = "${context.packageName}.wait"
         lookup_channel = "${context.packageName}.lookup"
@@ -30,20 +43,5 @@ class Notifications(context: Context) {
         notificationManager.createNotificationChannel(server)
         notificationManager.createNotificationChannel(client)
         notificationManager.createNotificationChannel(controls)
-    }
-    companion object{
-        lateinit var wait_channel : String
-        lateinit var lookup_channel : String
-        lateinit var connection_channel : String
-        lateinit var server_channel : String
-        lateinit var client_channel : String
-        lateinit var controls_channel: String
-
-        lateinit var wait : NotificationChannel
-        lateinit var lookup : NotificationChannel
-        lateinit var connection : NotificationChannel
-        lateinit var server : NotificationChannel
-        lateinit var client : NotificationChannel
-        lateinit var controls : NotificationChannel
     }
 }

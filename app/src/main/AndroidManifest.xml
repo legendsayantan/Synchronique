@@ -36,12 +36,9 @@
         <service
             android:name=".services.ServerService"
             android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".services.MediaService"
-            android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="mediaProjection" />
+            android:foregroundServiceType="mediaProjection"/>
+
         <service
             android:name=".services.NotificationListener"
             android:enabled="true"

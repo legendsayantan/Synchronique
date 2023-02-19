@@ -12,4 +12,7 @@ class ClientConfig(
     var camera: Boolean,
     var noti: Boolean,
 ) {
+    constructor(values: Values) : this(values.mediaSync, values.audioStream, values.audioSample, values.cameraShutter, values.notiShare) {
+
+    }
 }

@@ -62,14 +62,12 @@ class EncryptionManager {
                 } else {
                     x*7 - ((System.currentTimeMillis()/1000) % (x*7))
                 }
-                remoteConfig.fetch(cacheExpiration).addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        remoteConfig.activate()
-                        val formatter = DateTimeFormatter.ofPattern("DDD")
-                        val currentDate = LocalDateTime.now().format(formatter)
-                        cachedKey = currentDate+remoteConfig.getString("cryptokey")
-                        fetchDynamicKey ({ onSuccess(it) }, { onFailure(it) })
-                    }
+                remoteConfig.fetch(cacheExpiration).addOnSuccessListener { task ->
+                    remoteConfig.activate()
+                    val formatter = DateTimeFormatter.ofPattern("DDD")
+                    val currentDate = LocalDateTime.now().format(formatter)
+                    cachedKey = currentDate+remoteConfig.getString("cryptokey")
+                    fetchDynamicKey ({ onSuccess(it) }, { onFailure(it) })
                 }.addOnFailureListener {
                     onFailure(it);
                 }

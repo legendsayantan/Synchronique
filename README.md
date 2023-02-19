@@ -7,8 +7,9 @@ Synchronique aims to provide a easy way to sync and connect nearby android devic
 ### Features
 (subject to change)
 #### On Demand
-- [x] Music Sync with nearby device
+- [x] Media Sync with nearby device
 - [x] Music Stream to nearby device
+- [x] Use as Wireless Microphone
 - [ ] Remote camera shutter
 - [ ] Read and reply to notifications on nearby devices
 #### Public

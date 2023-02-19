@@ -2,37 +2,31 @@ package com.legendsayantan.sync.services
 
 import EncryptionManager
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
-import android.media.AudioFormat
-import android.media.AudioManager
-import android.media.AudioTrack
 import android.os.IBinder
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.interfaces.ClientConfig
-import com.legendsayantan.sync.interfaces.EndpointInfo
-import com.legendsayantan.sync.interfaces.PayloadPacket
-import com.legendsayantan.sync.workers.Notifications
-import com.legendsayantan.sync.workers.PermissionManager
-import com.legendsayantan.sync.workers.Values
-import java.io.IOException
+import com.legendsayantan.sync.interfaces.*
+import com.legendsayantan.sync.workers.*
 
 class ClientService : Service() {
 
 
     lateinit var notificationManager: NotificationManager
-    /*var CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_STEREO
-    val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT*/
     lateinit var builder: Notification.Builder
     var noticount = 0;
-    lateinit var clientConfig: ClientConfig
     lateinit var transferThread: Thread
+    lateinit var values: Values
+
+    lateinit var mediaWorker: MediaWorker
+    lateinit var audioWorker: AudioWorker
+
+    lateinit var startStreamReceivers: () -> Unit
     override fun onBind(intent: Intent): IBinder {
         return null!!
     }
@@ -40,12 +34,15 @@ class ClientService : Service() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        val notification = Notification.Builder(this, Notifications.client_channel)
-            .setContentTitle("Client Service")
-            .setContentText("Server : ${serverEndpoint.name}")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .build()
+        values = Values(applicationContext)
+        val notification =
+            Notification.Builder(this, Notifications(applicationContext).client_channel)
+                .setContentTitle("Client Service")
+                .setContentText("Server : ${serverEndpoint.name}")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .build()
         startForeground(1, notification)
+        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         initiateConnection()
     }
 
@@ -54,17 +51,21 @@ class ClientService : Service() {
     }
 
     override fun onDestroy() {
-        CONNECTED = false
         connectionCanceled()
         try {
             transferThread.interrupt()
-        }catch ( _ : java.lang.Exception){}
-        Nearby.getConnectionsClient(applicationContext).sendPayload(serverEndpoint.id,
-            Payload.fromBytes(PayloadPacket.toEncBytes(
-                PayloadPacket(PayloadPacket.Companion.PayloadType.DISCONNECT,ByteArray(0))
-            ))).addOnCompleteListener {
-            Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(serverEndpoint.id)
-            stopService(Intent(applicationContext,MediaService::class.java))
+        } catch (_: java.lang.Exception) {
+        }
+        Nearby.getConnectionsClient(applicationContext).sendPayload(
+            serverEndpoint.id,
+            Payload.fromBytes(
+                PayloadPacket.toEncBytes(
+                    PayloadPacket(PayloadPacket.Companion.PayloadType.DISCONNECT, ByteArray(0))
+                )
+            )
+        ).addOnCompleteListener {
+            Nearby.getConnectionsClient(applicationContext)
+                .disconnectFromEndpoint(serverEndpoint.id)
         }
         super.onDestroy()
     }
@@ -86,29 +87,21 @@ class ClientService : Service() {
                                     p1: Payload
                                 ) {
                                     if (p1.type == Payload.Type.BYTES && p1.asBytes() != null) {
-                                        val payloadPacket = PayloadPacket.fromEncBytes(p1.asBytes()!!)
-                                        when (payloadPacket.payloadType) {
-                                            PayloadPacket.Companion.PayloadType.DISCONNECT -> {
-                                                CONNECTED = false
-                                                connectionCanceled()
-                                                Nearby.getConnectionsClient(applicationContext)
-                                                    .disconnectFromEndpoint(serverEndpoint.id)
-                                                //Values.connectedServer = null
-                                                stopSelf()
+                                        processIncomingPayload(p1, serverEndpoint)
+                                    } else if (p1.type == Payload.Type.STREAM) {
+                                        startStreamReceivers = {
+                                            if (clientConfig.audio) {
+                                                audioWorker.playAudioFromPayload(p1)
                                             }
-                                            PayloadPacket.Companion.PayloadType.CONFIG_PACKET -> {
-                                                //clientConfig = payloadPacket.data as ClientConfig
-                                                //prepareReceivers(clientConfig)
-                                            }
-                                            PayloadPacket.Companion.PayloadType.MEDIA_PACKET -> {
-                                                //MediaService.instance?.recvMediaSync(payloadPacket.data as MediaPacket)
-                                            }
+                                            startStreamReceivers = {}
                                         }
-                                    }else if(p1.type==Payload.Type.STREAM){
-                                        println("Stream started")
-                                        //playAudioFromPayload(p1)
+                                        //try to start now
+                                        try {
+                                            startStreamReceivers()
+                                        }catch (_: java.lang.Exception){}
                                     }
                                 }
+
                                 override fun onPayloadTransferUpdate(
                                     p0: String,
                                     p1: PayloadTransferUpdate
@@ -123,7 +116,7 @@ class ClientService : Service() {
                             ConnectionsStatusCodes.STATUS_OK -> {
                                 builder = Notification.Builder(
                                     applicationContext,
-                                    Notifications.connection_channel
+                                    Notifications(applicationContext).connection_channel
                                 )
                                     .setSmallIcon(R.drawable.ic_launcher_background)
                                     .setContentTitle("Request Accepted")
@@ -137,30 +130,26 @@ class ClientService : Service() {
                             ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {
                                 builder = Notification.Builder(
                                     applicationContext,
-                                    Notifications.connection_channel
+                                    Notifications(applicationContext).connection_channel
                                 )
                                     .setSmallIcon(R.drawable.ic_launcher_background)
                                     .setContentTitle("Request Rejected")
                                     .setContentText("Your connection to ${serverEndpoint.name} was rejected.")
                                 notificationManager.notify(noticount, builder.build())
                                 noticount++
-                                CONNECTED = false
-                                REJECTED = true
                                 connectionCanceled()
                                 stopSelf()
                             }
                             ConnectionsStatusCodes.STATUS_ERROR -> {
                                 builder = Notification.Builder(
                                     applicationContext,
-                                    Notifications.connection_channel
+                                    Notifications(applicationContext).connection_channel
                                 )
                                     .setSmallIcon(R.drawable.ic_launcher_background)
                                     .setContentTitle("Error Happened")
-                                    .setContentText("Your request to ${serverEndpoint.name} failed because of some error.")
+                                    .setContentText("Your request to ${serverEndpoint.name} failed.")
                                 notificationManager.notify(noticount, builder.build())
                                 noticount++
-                                CONNECTED = false
-                                REJECTED = true
                                 connectionCanceled()
                                 stopSelf()
                             }
@@ -178,8 +167,8 @@ class ClientService : Service() {
                             .setContentText("${serverEndpoint.name} was disconnected.")
                         notificationManager.notify(noticount, builder.build())
                         noticount++
-                        CONNECTED = false
                         Values.connectedServer = null
+                        Values.appState = Values.Companion.AppState.IDLE
                         connectionCanceled()
                         stopSelf()
                     }
@@ -187,51 +176,52 @@ class ClientService : Service() {
         }, {})
     }
 
-    /*fun prepareReceivers(clientConfig: ClientConfig){
+    private fun prepareWorkers(clientConfig: ClientConfig) {
         MainActivity.instance?.runOnUiThread {
-            PermissionManager(MainActivity.instance!!).ask(clientConfig){
-
-            }
-        }
-    }*/
-
-    /*fun playAudioFromPayload(payload: Payload) {
-        val bufferSize = AudioTrack.getMinBufferSize(
-            MediaService.SAMPLE_RATE,
-            AudioFormat.CHANNEL_IN_STEREO,
-            AUDIO_FORMAT
-        )
-        val audioTrack = AudioTrack(
-            AudioManager.STREAM_MUSIC,
-            clientConfig.audioSample,
-            AudioFormat.CHANNEL_IN_STEREO,
-            AUDIO_FORMAT,
-            bufferSize,
-            AudioTrack.MODE_STREAM
-        )
-        audioTrack.play()
-        transferThread = Thread {
-            try {
-                payload.asStream()!!.asInputStream().use { inputStream ->
-                    val buffer = ByteArray(bufferSize)
-                    var length: Int
-                    while (inputStream.read(buffer).also { length = it } > 0) {
-                        audioTrack.write(buffer, 0, length)
-                    }
+            Values.appState = Values.Companion.AppState.PERMS
+            PermissionManager(MainActivity.instance!!).ask(clientConfig) {
+                if (clientConfig.media) {
+                    mediaWorker = MediaWorker(this)
                 }
-            } catch (e: IOException) {
-                e.printStackTrace()
-                transferThread.interrupt()
+                if (clientConfig.audio) {
+                    audioWorker = AudioWorker(this, null, clientConfig.audioSample)
+                }
+                Values.appState = Values.Companion.AppState.ACCESSING
+                startStreamReceivers()
             }
         }
-        transferThread.start()
-    }*/
+    }
+
+    fun processIncomingPayload(payload: Payload, endpointInfo: EndpointInfo) {
+        val payloadPacket = PayloadPacket.fromEncBytes(payload.asBytes()!!)
+        when (payloadPacket.payloadType) {
+            PayloadPacket.Companion.PayloadType.DISCONNECT -> {
+                Nearby.getConnectionsClient(applicationContext)
+                    .disconnectFromEndpoint(endpointInfo.id)
+                connectionCanceled()
+                Values.connectedServer = null
+                Values.appState = Values.Companion.AppState.IDLE
+                stopSelf()
+            }
+            PayloadPacket.Companion.PayloadType.CONFIG_PACKET -> {
+                clientConfig = payloadPacket.data as ClientConfig
+                prepareWorkers(clientConfig)
+                connectionConfigured()
+            }
+            PayloadPacket.Companion.PayloadType.MEDIA_SYNC_PACKET -> {
+                mediaWorker.recvMediaSync(payloadPacket.data as MediaSyncPacket)
+            }
+            PayloadPacket.Companion.PayloadType.MEDIA_ACTION_PACKET -> {
+                mediaWorker.recvMediaAction(payloadPacket.data as MediaActionPacket)
+            }
+        }
+    }
+
     companion object {
         lateinit var instance: ClientService
-        var CONNECTED = false
-        var REJECTED = false
         var connectionCanceled: () -> Unit = {}
         var connectionInitiated: () -> Unit = {}
+        var connectionConfigured: () -> Unit = {}
         lateinit var clientConfig: ClientConfig
         lateinit var serverEndpoint: EndpointInfo
     }

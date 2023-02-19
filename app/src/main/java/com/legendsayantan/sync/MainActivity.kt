@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.ColorDrawable
 import android.location.LocationManager
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -36,10 +37,9 @@ import com.legendsayantan.sync.interfaces.EndpointInfo
 import com.legendsayantan.sync.services.*
 import com.legendsayantan.sync.views.ConnectionDialog
 import com.legendsayantan.sync.workers.CardAnimator
-import com.legendsayantan.sync.workers.Notifications
 import com.legendsayantan.sync.workers.Values
+import com.legendsayantan.sync.workers.Values.Companion.REQUEST_CODE_CAPTURE_PERM
 import me.ibrahimsn.lib.SmoothBottomBar
-import kotlin.system.exitProcess
 
 
 class MainActivity : AppCompatActivity() {
@@ -48,6 +48,9 @@ class MainActivity : AppCompatActivity() {
     private val RC_SIGN_IN = 1001
     lateinit var cardAnimator: CardAnimator
     lateinit var values : Values
+    var homeFragment = HomeFragment()
+    var connectionFragment = ConnectionFragment()
+    var exploreFragment = ExploreFragment()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +59,7 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.setBackgroundDrawable(ColorDrawable(window.statusBarColor))
         bottomAppBar = findViewById(R.id.bottomBar);
         firebaseAuth = Firebase.auth
-        Notifications(this)
+        mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         values = Values(this)
         if (Firebase.auth.currentUser == null) {
             supportFragmentManager.beginTransaction()
@@ -76,12 +79,6 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         instance = null
-        stopService(Intent(this, LookupService::class.java))
-        if (ClientService.CONNECTED) {
-            stopService(Intent(this, WaitForConnectionService::class.java))
-        } else {
-            //startForegroundService(Intent(this, AdvertiserService::class.java))
-        }
     }
 
     private fun loginSuccess() {
@@ -93,17 +90,17 @@ class MainActivity : AppCompatActivity() {
             when (it) {
                 0 -> {
                     supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainerView, HomeFragment()).commit()
+                        .replace(R.id.fragmentContainerView, homeFragment).commit()
                     supportActionBar?.title = getString(R.string.app_name);
                 }
                 1 -> {
                     supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainerView, ConnectionFragment()).commit()
+                        .replace(R.id.fragmentContainerView, connectionFragment).commit()
                     supportActionBar?.title = getString(R.string.menu_link);
                 }
                 2 -> {
                     supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainerView, ExploreFragment()).commit()
+                        .replace(R.id.fragmentContainerView, exploreFragment).commit()
                     supportActionBar?.title = getString(R.string.menu_allow);
                 }
             }
@@ -128,13 +125,23 @@ class MainActivity : AppCompatActivity() {
                 println("-------------ERROR----------------")
             }
         }
-        if (requestCode == MediaService.REQUEST_CODE_CAPTURE_PERM) {
+        if (requestCode == REQUEST_CODE_CAPTURE_PERM) {
             if (resultCode == Activity.RESULT_OK) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    MediaService.instance?.startAudioStream(resultCode, data!!)
+                    if (data != null) {
+                        ServerService.mediaProjectionManager = mediaProjectionManager
+                        ServerService.resultCode = resultCode
+                        ServerService.data = data
+                        Toast.makeText(applicationContext,"Stream will be started.",Toast.LENGTH_LONG).show()
+                    }else{
+                        Toast.makeText(applicationContext,"NULL",Toast.LENGTH_LONG).show()
+                    }
                 }
             } else {
                 Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
+                stopService(Intent(this,WaitForConnectionService::class.java))
+                stopService(Intent(this,ServerService::class.java))
+                Values.appState = Values.Companion.AppState.IDLE
             }
         }
     }
@@ -168,17 +175,14 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(signInIntent, RC_SIGN_IN)
     }
 
-    fun signOutDialog() {
-
-    }
-
     fun signOut() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build()
+            .requestIdToken(getString(R.string.web_client_id)).requestEmail().build()
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
-        googleSignInClient.signOut().addOnCompleteListener(this) {
-            firebaseAuth.signOut()
-            exitProcess(0)
+        googleSignInClient.signOut().addOnSuccessListener{
+            firebaseAuth.signOut().also {
+                finishAndRemoveTask()
+            }
         }
     }
 
@@ -248,9 +252,6 @@ class MainActivity : AppCompatActivity() {
             val x = intent.getStringExtra("endpointName").toString().split("_")
             val endpoint =
                 EndpointInfo(intent.getStringExtra("endpointId").toString(), x[0], x[1], null)
-            println("------------- x ----------------")
-            println(x)
-            println("------------- x ----------------")
 
             ConnectionDialog(this,
                 "Connection Details",
@@ -259,9 +260,8 @@ class MainActivity : AppCompatActivity() {
                 "Accept",
                 {
                     print("------------- endpoint ----------------")
-                    Values.connectedClients.add(endpoint)
-                    print("------------- connectedClients ----------------")
-                    print(Values.connectedClients)
+                    ServerService.instance!!.acceptConnection(endpoint)
+                    Values.onClientAdded = { it.d.dismiss()}
                 },
                 { Nearby.getConnectionsClient(this).rejectConnection(endpoint.id) }).show()
         }
@@ -284,6 +284,8 @@ class MainActivity : AppCompatActivity() {
         var bluetoothAccess: Boolean = false
         var locationAccess: Boolean = false
         var instance: MainActivity? = null
+        lateinit var mediaProjectionManager : MediaProjectionManager
+
         fun isLocationEnabled(context: Context): Boolean {
             val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
             return LocationManagerCompat.isLocationEnabled(manager)

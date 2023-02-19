@@ -1,6 +1,7 @@
 package com.legendsayantan.sync.workers
 
 import android.content.Context
+import android.media.AudioFormat
 import android.os.Build
 import android.widget.CompoundButton
 import android.widget.RadioButton
@@ -35,9 +36,9 @@ class Values(context: Context) {
         }
     }
 
-    fun bind(radioButton1: RadioButton, radioButton2: RadioButton, key: String) {
-        radioButton1.isChecked = prefs.getBoolean(key, false)
-        radioButton2.isChecked = !prefs.getBoolean(key, false)
+    fun bind(radioButton1: RadioButton, radioButton2: RadioButton, key: String,default: Boolean) {
+        radioButton1.isChecked = prefs.getBoolean(key, default)
+        radioButton2.isChecked = !prefs.getBoolean(key, default)
         radioButton1.setOnCheckedChangeListener { _, isChecked ->
             set(key, isChecked)
             onUpdate()
@@ -49,10 +50,10 @@ class Values(context: Context) {
     }
 
     fun bind(seekBar: SeekBar, key: String, def: Int, listener: (Int) -> Unit) {
-        seekBar.progress = prefs.getInt(key, def)
+        seekBar.progress = prefs.getInt(key, def)/1000
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                set(key, progress*1000)
+                set(key, progress * 1000)
                 listener(progress)
             }
 
@@ -94,7 +95,7 @@ class Values(context: Context) {
         get() = prefs.getBoolean(
             "audiostreammic",
             false
-        ) || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+        ) || (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)
         set(value) {
             set("audiostreammic", value)
         }
@@ -122,18 +123,21 @@ class Values(context: Context) {
             set("notireply", value)
         }
 
-    //constants
-    //notification channels
 
 
     //connection channel
     val nearby_advertise = "${context.packageName}.connect"
 
     companion object {
+        //constants
+        var AUDIO_CONFIG = AudioFormat.CHANNEL_IN_STEREO
+        val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
+        val REQUEST_CODE_CAPTURE_PERM = 156
         var appState = AppState.IDLE
             set(value) {
                 field = value
                 onAppStateChanged()
+                println("App state changed to $value")
             }
         var onAppStateChanged = {}
         var connectedServer: EndpointInfo? = null
@@ -160,6 +164,14 @@ class Values(context: Context) {
         var onClientAdded = {}
         var onClientRemoved = {}
 
+        val connectionText: String
+            get() {
+                if (appState == AppState.CONNECTED)
+                    return "Connected to " + if (connectedClients.size > 1) "${connectedClients.size} devices" else "${connectedClients[0].name}"
+                else if (appState == AppState.ACCESSING)
+                    return "Accessing ${connectedServer?.name}"
+                else return ""
+            }
         enum class AppState {
             IDLE,
             LOADING,

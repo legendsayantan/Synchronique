@@ -12,6 +12,7 @@ import com.google.android.gms.nearby.connection.*
 import com.legendsayantan.sync.interfaces.EndpointInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.R
+import com.legendsayantan.sync.fragments.ConnectionFragment
 import com.legendsayantan.sync.workers.Notifications
 import com.legendsayantan.sync.workers.Values
 import java.util.*
@@ -19,7 +20,6 @@ import kotlin.collections.ArrayList
 
 class LookupService : Service() {
     lateinit var values : Values
-    lateinit var lookupThread: Timer
 
     override fun onBind(intent: Intent): IBinder {
         return null!!
@@ -30,7 +30,7 @@ class LookupService : Service() {
         instance = this
         endpoints = ArrayList()
         values = Values(applicationContext)
-        val notification = Notification.Builder(this, Notifications.lookup_channel)
+        val notification = Notification.Builder(this, Notifications(applicationContext).lookup_channel)
             .setContentTitle("Looking for nearby devices")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .build()
@@ -46,7 +46,6 @@ class LookupService : Service() {
         return START_STICKY
     }
     override fun onDestroy() {
-        lookupThread.cancel()
         Nearby.getConnectionsClient(this).stopDiscovery()
         Values.appState = Values.Companion.AppState.IDLE
         super.onDestroy()
@@ -56,7 +55,7 @@ class LookupService : Service() {
         val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
             override fun onEndpointFound(p0: String, p1: DiscoveredEndpointInfo) {
                     EncryptionManager.fetchDynamicKey ({
-                        println("${p1.endpointName} -------------------- ")
+                        println("${p1.endpointName} -------------------- $it")
                         val splits = EncryptionManager().decrypt(p1.endpointName, it).split("_")
                         println("found $splits - $p0")
                         endpoints.add(EndpointInfo(p0,splits[0],splits[1],p1))
@@ -72,32 +71,21 @@ class LookupService : Service() {
                 endpoints.removeIf { it.id == p0 }
             }
         }
-        Values.appState = Values.Companion.AppState.LOOKING
-        lookupThread = lookupNow(applicationContext,endpointDiscoveryCallback)
-    }
-
-    fun lookupNow(context: Context,endpointDiscoveryCallback: EndpointDiscoveryCallback): Timer{
-        var singleLookUp = true
-        val timer = Timer()
-        timer.scheduleAtFixedRate(object: TimerTask(){
-            override fun run() {
-                val discoveryOptions: DiscoveryOptions = DiscoveryOptions.Builder().setStrategy(if(singleLookUp)Strategy.P2P_POINT_TO_POINT else Strategy.P2P_STAR).build()
-                Nearby.getConnectionsClient(context).stopDiscovery()
-                Nearby.getConnectionsClient(context)
-                    .startDiscovery(values.nearby_advertise, endpointDiscoveryCallback, discoveryOptions)
-                    .addOnCompleteListener {
-                        singleLookUp = !singleLookUp
-                    }
-                    .addOnSuccessListener {
-
-                    }
-                    .addOnFailureListener {
-
-                    }
+        Nearby.getConnectionsClient(this).stopDiscovery()
+        Nearby.getConnectionsClient(this)
+            .startDiscovery(values.nearby_advertise, endpointDiscoveryCallback, DiscoveryOptions.Builder().setStrategy(
+                lookupStrategy).build())
+            .addOnCompleteListener {
             }
-        },0,10000)
-        return timer
+            .addOnSuccessListener {
+                Values.appState = Values.Companion.AppState.LOOKING
+            }
+            .addOnFailureListener {
+                Values.appState = Values.Companion.AppState.IDLE
+            }
+
     }
+
 
 
 
@@ -106,5 +94,6 @@ class LookupService : Service() {
         var endpoint_updated: () -> Unit = {}
         lateinit var discover_id : String
         var endpoints = ArrayList<EndpointInfo>()
+        lateinit var lookupStrategy : Strategy
     }
 }
