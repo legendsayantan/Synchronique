@@ -124,34 +124,20 @@ class ConnectionFragment : Fragment() {
                 Values.Companion.AppState.CONNECTED -> {
                     AskDialog(
                         requireActivity(),
-                        "Stop your network and start looking for other networks?",
+                        "Stop your own network?",
                         {
                             WaitForConnectionService.instance.stopSelf()
                             ServerService.instance?.stopSelf()
-                            multiLookupButton.visibility = View.GONE
-                            discovery(false)
-                            TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
-                            singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =
-                                View.VISIBLE
-                            singleLookupButton.findViewById<LinearLayout>(R.id.btn1).visibility =
-                                View.GONE
                         },
                         {}).show()
                 }
                 Values.Companion.AppState.WAITING -> {
                     AskDialog(
                         requireActivity(),
-                        "Stop your network and start looking for other networks?",
+                        "Stop your own network?",
                         {
                             WaitForConnectionService.instance.stopSelf()
                             ServerService.instance?.stopSelf()
-                            multiLookupButton.visibility = View.GONE
-                            discovery(false)
-                            TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
-                            singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =
-                                View.VISIBLE
-                            singleLookupButton.findViewById<LinearLayout>(R.id.btn1).visibility =
-                                View.GONE
                         },
                         {}).show()
                 }
@@ -194,34 +180,20 @@ class ConnectionFragment : Fragment() {
                 Values.Companion.AppState.CONNECTED -> {
                     AskDialog(
                         requireActivity(),
-                        "Stop your network and start looking for other networks?",
+                        "Stop your own network?",
                         {
                             WaitForConnectionService.instance.stopSelf()
                             ServerService.instance?.stopSelf()
-                            singleLookupButton.visibility = View.GONE
-                            discovery(true)
-                            TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
-                            multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =
-                                View.VISIBLE
-                            multiLookupButton.findViewById<LinearLayout>(R.id.btn2).visibility =
-                                View.GONE
                         },
                         {}).show()
                 }
                 Values.Companion.AppState.WAITING -> {
                     AskDialog(
                         requireActivity(),
-                        "Stop your network and start looking for other networks?",
+                        "Stop your own network?",
                         {
                             WaitForConnectionService.instance.stopSelf()
                             ServerService.instance?.stopSelf()
-                            singleLookupButton.visibility = View.GONE
-                            discovery(true)
-                            TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
-                            multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =
-                                View.VISIBLE
-                            multiLookupButton.findViewById<LinearLayout>(R.id.btn2).visibility =
-                                View.GONE
                         },
                         {}).show()
                 }
@@ -244,7 +216,9 @@ class ConnectionFragment : Fragment() {
                     multiLookupButton.visibility = View.GONE
                     accessCard.visibility = View.VISIBLE
                     connectionCard.visibility = View.GONE
-                    initAccessCard()
+                    try{
+                        initAccessCard()
+                    }catch (_:Exception){}
                 }
                 Values.Companion.AppState.LOOKING -> {
                     accessCard.visibility = View.GONE

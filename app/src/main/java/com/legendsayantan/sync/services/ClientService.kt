@@ -187,7 +187,9 @@ class ClientService : Service() {
                     audioWorker = AudioWorker(this, null, clientConfig.audioSample)
                 }
                 Values.appState = Values.Companion.AppState.ACCESSING
-                startStreamReceivers()
+                try {
+                    startStreamReceivers()
+                }catch (_:Exception){}
             }
         }
     }
