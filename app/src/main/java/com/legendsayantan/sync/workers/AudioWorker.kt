@@ -14,7 +14,7 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.Payload
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.interfaces.EndpointInfo
+import com.legendsayantan.sync.models.EndpointInfo
 import com.legendsayantan.sync.services.ClientService
 import java.io.IOException
 import java.io.PipedInputStream

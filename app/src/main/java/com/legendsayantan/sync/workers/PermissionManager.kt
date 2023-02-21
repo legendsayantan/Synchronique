@@ -8,8 +8,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.interfaces.ClientConfig
-import com.legendsayantan.sync.interfaces.ServerConfig
+import com.legendsayantan.sync.models.ClientConfig
+import com.legendsayantan.sync.models.ServerConfig
 import java.util.*
 
 /**

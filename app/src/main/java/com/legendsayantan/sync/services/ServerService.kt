@@ -12,9 +12,9 @@ import android.widget.Toast
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.interfaces.EndpointInfo
-import com.legendsayantan.sync.interfaces.PayloadPacket
-import com.legendsayantan.sync.interfaces.ServerConfig
+import com.legendsayantan.sync.models.EndpointInfo
+import com.legendsayantan.sync.models.PayloadPacket
+import com.legendsayantan.sync.models.ServerConfig
 import com.legendsayantan.sync.workers.AudioWorker
 import com.legendsayantan.sync.workers.MediaWorker
 import com.legendsayantan.sync.workers.Notifications
@@ -27,7 +27,6 @@ class ServerService : Service() {
     lateinit var serverConfig: ServerConfig
     lateinit var mediaProjection: MediaProjection
 
-    var timer = Timer()
     lateinit var mediaWorker : MediaWorker
     lateinit var audioWorker: AudioWorker
     override fun onBind(intent: Intent): IBinder {
@@ -72,6 +71,7 @@ class ServerService : Service() {
                         if (PayloadPacket.fromEncBytes(p1.asBytes()!!).payloadType == PayloadPacket.Companion.PayloadType.DISCONNECT) {
                             Nearby.getConnectionsClient(applicationContext)
                                 .disconnectFromEndpoint(endpointInfo.id)
+                            Values.appState = Values.Companion.AppState.IDLE
                             stopSelf()
                         }
                     }
@@ -132,7 +132,7 @@ class ServerService : Service() {
                 it.printStackTrace()
             }
     }
-    fun initMediaProjection(mediaProjectionManager: MediaProjectionManager, resultCode: Int, data: Intent){
+    private fun initMediaProjection(mediaProjectionManager: MediaProjectionManager, resultCode: Int, data: Intent){
         mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
     }
 
@@ -155,12 +155,16 @@ class ServerService : Service() {
                 Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(endpoint.id)
             }
         }
+        Values.appState = Values.Companion.AppState.IDLE
         super.onDestroy()
     }
 
 
-    fun initialiseServe(){
+    private fun initialiseServe(){
         println("initialise Serve")
+        Values.onClientRemoved = {
+            if(Values.connectedClients.size==0)stopSelf()
+        }
         if(serverConfig.clientConfig.media){
             mediaWorker = MediaWorker(applicationContext)
             mediaWorker.startMediaControls()
@@ -179,7 +183,7 @@ class ServerService : Service() {
             }
         }
     }
-    fun serveDataTo(endpointInfo: EndpointInfo){
+    private fun serveDataTo(endpointInfo: EndpointInfo){
         if(serverConfig.clientConfig.media){
             mediaWorker.clientele.add(endpointInfo)
         }

@@ -1,4 +1,4 @@
-package com.legendsayantan.sync.interfaces
+package com.legendsayantan.sync.models
 
 /**
  * @author legendsayantan

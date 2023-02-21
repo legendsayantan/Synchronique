@@ -11,7 +11,7 @@ import com.google.android.gms.nearby.connection.*
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.interfaces.*
+import com.legendsayantan.sync.models.*
 import com.legendsayantan.sync.workers.*
 
 class ClientService : Service() {
@@ -114,11 +114,12 @@ class ClientService : Service() {
                     override fun onConnectionResult(p0: String, p1: ConnectionResolution) {
                         when (p1.status.statusCode) {
                             ConnectionsStatusCodes.STATUS_OK -> {
+                                stopService(Intent(applicationContext,LookupService::class.java))
                                 builder = Notification.Builder(
                                     applicationContext,
                                     Notifications(applicationContext).connection_channel
                                 )
-                                    .setSmallIcon(R.drawable.ic_launcher_background)
+                                    .setSmallIcon(R.drawable.ic_launcher_foreground)
                                     .setContentTitle("Request Accepted")
                                     .setContentText("Your connection to ${serverEndpoint.name} was accepted.")
                                 notificationManager.notify(noticount, builder.build())
@@ -132,7 +133,7 @@ class ClientService : Service() {
                                     applicationContext,
                                     Notifications(applicationContext).connection_channel
                                 )
-                                    .setSmallIcon(R.drawable.ic_launcher_background)
+                                    .setSmallIcon(R.drawable.ic_launcher_foreground)
                                     .setContentTitle("Request Rejected")
                                     .setContentText("Your connection to ${serverEndpoint.name} was rejected.")
                                 notificationManager.notify(noticount, builder.build())
@@ -145,7 +146,7 @@ class ClientService : Service() {
                                     applicationContext,
                                     Notifications(applicationContext).connection_channel
                                 )
-                                    .setSmallIcon(R.drawable.ic_launcher_background)
+                                    .setSmallIcon(R.drawable.ic_launcher_foreground)
                                     .setContentTitle("Error Happened")
                                     .setContentText("Your request to ${serverEndpoint.name} failed.")
                                 notificationManager.notify(noticount, builder.build())
@@ -161,7 +162,7 @@ class ClientService : Service() {
                             applicationContext,
                             "${applicationContext.packageName}.request"
                         )
-                            .setSmallIcon(R.drawable.ic_launcher_background)
+                            .setSmallIcon(R.drawable.ic_launcher_foreground)
                             .setContentTitle("Device Disconnected")
                             .setOngoing(false)
                             .setContentText("${serverEndpoint.name} was disconnected.")
@@ -216,6 +217,9 @@ class ClientService : Service() {
             PayloadPacket.Companion.PayloadType.MEDIA_ACTION_PACKET -> {
                 mediaWorker.recvMediaAction(payloadPacket.data as MediaActionPacket)
             }
+            PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> TODO()
+            PayloadPacket.Companion.PayloadType.NOTIFICATION_PACKET -> TODO()
+            PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY -> TODO()
         }
     }
 

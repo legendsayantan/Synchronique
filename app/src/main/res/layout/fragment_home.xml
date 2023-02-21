@@ -147,6 +147,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
+                        android:gravity="top"
                         android:orientation="horizontal">
                         <TextView
                             android:id="@+id/textView"
@@ -157,11 +158,15 @@
                             android:id="@+id/networkText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="10dp"
                             android:layout_weight="1"
                             android:text="Idle"
                             android:textSize="14sp" />
 
+                        <ImageView
+                            android:id="@+id/expand"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/baseline_settings_24" />
 
 
                     </LinearLayout>
@@ -170,7 +175,7 @@
                         android:id="@+id/multidevice"
                         android:layout_width="match_parent"
                         android:layout_height="20dp"
-                        android:text="Multi-connection support" />
+                        android:text="Multi-connection" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -432,7 +437,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:textColor="?attr/colorPrimary"
-                            android:text="Remote Shutter"
+                            android:text="Remote Trigger"
                             android:textSize="14sp" />
                     </LinearLayout>
 

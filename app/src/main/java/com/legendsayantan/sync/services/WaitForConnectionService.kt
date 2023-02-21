@@ -11,7 +11,7 @@ import com.google.android.gms.nearby.connection.*
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.interfaces.ServerConfig
+import com.legendsayantan.sync.models.ServerConfig
 import com.legendsayantan.sync.workers.Notifications
 import com.legendsayantan.sync.workers.Values
 
@@ -77,7 +77,7 @@ class WaitForConnectionService : Service() {
                             applicationContext,
                             Notifications(applicationContext).connection_channel
                         )
-                            .setSmallIcon(R.drawable.ic_launcher_background)
+                            .setSmallIcon(R.drawable.ic_launcher_foreground)
                             .setContentTitle("Connection Error")
                             .setOngoing(false)
                             .setContentText("Could not connect to ${endpoint?.name}, Please retry.")
@@ -93,7 +93,7 @@ class WaitForConnectionService : Service() {
                     applicationContext,
                     Notifications(applicationContext).connection_channel
                 )
-                    .setSmallIcon(R.drawable.ic_launcher_background)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle("Device Disconnected")
                     .setOngoing(false)
                     .setContentText("${endpoint?.name} was disconnected.")

@@ -33,7 +33,7 @@ import com.legendsayantan.sync.fragments.ExploreFragment
 import com.legendsayantan.sync.fragments.ConnectionFragment
 import com.legendsayantan.sync.fragments.HomeFragment
 import com.legendsayantan.sync.fragments.LoginFragment
-import com.legendsayantan.sync.interfaces.EndpointInfo
+import com.legendsayantan.sync.models.EndpointInfo
 import com.legendsayantan.sync.services.*
 import com.legendsayantan.sync.views.ConnectionDialog
 import com.legendsayantan.sync.workers.CardAnimator
@@ -251,7 +251,7 @@ class MainActivity : AppCompatActivity() {
         if (intent.hasExtra("endpointName")) {
             val x = intent.getStringExtra("endpointName").toString().split("_")
             val endpoint =
-                EndpointInfo(intent.getStringExtra("endpointId").toString(), x[0], x[1], null)
+                EndpointInfo(intent.getStringExtra("endpointId").toString(), x[0], x[1])
 
             ConnectionDialog(this,
                 "Connection Details",
@@ -261,7 +261,9 @@ class MainActivity : AppCompatActivity() {
                 {
                     print("------------- endpoint ----------------")
                     ServerService.instance!!.acceptConnection(endpoint)
-                    Values.onClientAdded = { it.d.dismiss()}
+                    Values.onClientAdded = {
+                        it.d.dismiss()
+                    }
                 },
                 { Nearby.getConnectionsClient(this).rejectConnection(endpoint.id) }).show()
         }

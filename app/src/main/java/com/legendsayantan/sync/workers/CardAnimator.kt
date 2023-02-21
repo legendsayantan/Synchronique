@@ -31,7 +31,7 @@ class CardAnimator(context: Activity) {
         fun staggerList(layout: LinearLayout){
             for(card in layout.children){
                 card.alpha = 0f
-                card.animate().alpha(1f).setDuration(500).setStartDelay((200*layout.indexOfChild(card)).toLong()).start()
+                card.animate().alpha(1f).setDuration(500).setStartDelay((150*layout.indexOfChild(card)).toLong()).start()
             }
         }
     }

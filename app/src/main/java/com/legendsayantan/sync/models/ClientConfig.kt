@@ -1,4 +1,4 @@
-package com.legendsayantan.sync.interfaces
+package com.legendsayantan.sync.models
 
 import com.legendsayantan.sync.workers.Values
 
@@ -12,7 +12,7 @@ class ClientConfig(
     var camera: Boolean,
     var noti: Boolean,
 ) {
-    constructor(values: Values) : this(values.mediaSync, values.audioStream, values.audioSample, values.cameraShutter, values.notiShare) {
+    constructor(values: Values) : this(values.mediaSync, values.audioStream, values.audioSample, values.triggerButtons, values.notiShare) {
 
     }
 }

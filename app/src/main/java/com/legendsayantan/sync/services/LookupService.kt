@@ -3,19 +3,16 @@ package com.legendsayantan.sync.services
 import EncryptionManager
 import android.app.Notification
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.widget.Toast
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
-import com.legendsayantan.sync.interfaces.EndpointInfo
+import com.legendsayantan.sync.models.EndpointInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.fragments.ConnectionFragment
 import com.legendsayantan.sync.workers.Notifications
 import com.legendsayantan.sync.workers.Values
-import java.util.*
 import kotlin.collections.ArrayList
 
 class LookupService : Service() {
@@ -58,7 +55,7 @@ class LookupService : Service() {
                         println("${p1.endpointName} -------------------- $it")
                         val splits = EncryptionManager().decrypt(p1.endpointName, it).split("_")
                         println("found $splits - $p0")
-                        endpoints.add(EndpointInfo(p0,splits[0],splits[1],p1))
+                        endpoints.add(EndpointInfo(p0, splits[0], splits[1]))
                         endpoint_updated()
                     },{
                         Toast.makeText(applicationContext,"Unable to verify token",Toast.LENGTH_SHORT).show()

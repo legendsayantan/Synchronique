@@ -17,7 +17,7 @@ import com.google.android.gms.nearby.connection.*
 import com.google.android.material.card.MaterialCardView
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.interfaces.PayloadPacket
+import com.legendsayantan.sync.models.PayloadPacket
 import com.legendsayantan.sync.services.LookupService
 import com.legendsayantan.sync.services.ClientService
 import com.legendsayantan.sync.services.ServerService

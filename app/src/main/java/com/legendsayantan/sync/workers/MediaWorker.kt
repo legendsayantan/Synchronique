@@ -19,10 +19,10 @@ import androidx.core.app.NotificationCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.Payload
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.interfaces.EndpointInfo
-import com.legendsayantan.sync.interfaces.MediaActionPacket
-import com.legendsayantan.sync.interfaces.MediaSyncPacket
-import com.legendsayantan.sync.interfaces.PayloadPacket
+import com.legendsayantan.sync.models.EndpointInfo
+import com.legendsayantan.sync.models.MediaActionPacket
+import com.legendsayantan.sync.models.MediaSyncPacket
+import com.legendsayantan.sync.models.PayloadPacket
 import com.legendsayantan.sync.services.NotificationListener
 import com.legendsayantan.sync.services.ServerService
 import java.util.*

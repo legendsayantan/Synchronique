@@ -7,7 +7,7 @@ import android.widget.CompoundButton
 import android.widget.RadioButton
 import android.widget.SeekBar
 import com.google.android.gms.nearby.connection.Strategy
-import com.legendsayantan.sync.interfaces.EndpointInfo
+import com.legendsayantan.sync.models.EndpointInfo
 
 /**
  * @author legendsayantan
@@ -15,7 +15,7 @@ import com.legendsayantan.sync.interfaces.EndpointInfo
 class Values(context: Context) {
     val prefs = context.getSharedPreferences("default", Context.MODE_PRIVATE)
     var onUpdate = {}
-    val syncParams = mediaSync || audioStream || cameraShutter || notiShare
+    val syncParams = mediaSync || audioStream || triggerButtons || notiShare
     fun set(key: String, value: Boolean) {
         prefs.edit().putBoolean(key, value).apply()
     }
@@ -106,10 +106,10 @@ class Values(context: Context) {
             set("audiosample", value)
         }
 
-    var cameraShutter
-        get() = prefs.getBoolean("camerashutter", false)
+    var triggerButtons
+        get() = prefs.getBoolean("trigger", false)
         set(value) {
-            set("camerashutter", value)
+            set("trigger", value)
         }
 
     var notiShare
@@ -166,11 +166,11 @@ class Values(context: Context) {
 
         val connectionText: String
             get() {
-                if (appState == AppState.CONNECTED)
-                    return "Connected to " + if (connectedClients.size > 1) "${connectedClients.size} devices" else "${connectedClients[0].name}"
-                else if (appState == AppState.ACCESSING)
-                    return "Accessing ${connectedServer?.name}"
-                else return ""
+                return when (appState) {
+                    AppState.CONNECTED -> "Connected to " + if (connectedClients.size > 1) "${connectedClients.size} devices" else "${connectedClients[0].name}"
+                    AppState.ACCESSING -> "Accessing ${connectedServer?.name}"
+                    else -> ""
+                }
             }
         enum class AppState {
             IDLE,

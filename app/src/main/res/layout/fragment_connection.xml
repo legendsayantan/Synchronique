@@ -10,6 +10,7 @@
 
     <LinearLayout
         android:orientation="vertical"
+        android:gravity="center"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -194,7 +195,7 @@
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
                                         android:layout_weight="1"
-                                        android:text="Remote Shutter"
+                                        android:text="Remote Trigger"
                                         android:textColor="?attr/colorPrimary"
                                         android:textSize="14sp" />
                                 </LinearLayout>
@@ -267,7 +268,8 @@
                 <ListView
                     android:id="@+id/advertiser_list"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="0dp"
+                    android:minHeight="48dp"
                     android:layout_weight="1"
                     android:layout_marginHorizontal="25dp"
                     android:layout_marginBottom="25dp" />
