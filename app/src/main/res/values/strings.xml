@@ -6,4 +6,14 @@
     <string name="menu_allow">Explore</string>
     <string name="sign_in">Sign in</string>
     <string name="sign_in_with">Sign in with</string>
+    <string name="nearby_info">
+        Nearby :\n
+        Nearby is a feature that allows other users that are nearby to find you and connect to you.\n
+        Multi-Connection Nearby :\n
+        Multi-connection Nearby will allow multiple nearby users to connect to you, but result in a slower connection speed.\n
+    </string>
+    <string name="socket_info">
+        Socket :\n
+        Socket is a feature that allows other users through Internet or LAN to find you and connect to you.\n
+    </string>
 </resources>

@@ -5,10 +5,12 @@ import android.content.Intent
 import com.google.android.gms.location.LocationRequest
 import android.os.Build
 import android.os.Bundle
+import android.transition.TransitionManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
+import android.widget.CompoundButton
 import android.widget.ImageView
 import android.widget.RadioButton
 import android.widget.Switch
@@ -143,6 +145,7 @@ class HomeFragment() : Fragment() {
         }
     }
 
+    @SuppressLint("CutPasteId")
     override fun onResume() {
         super.onResume()
         //bindings
@@ -168,6 +171,28 @@ class HomeFragment() : Fragment() {
             ).setDuration(250).start()
             requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled = (Values.appState==Values.Companion.AppState.IDLE)
         }
+        values.bind(requireView().findViewById(R.id.nearby), "nearby",true){
+            if(values.nearby&&(!values.socket)){
+                requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
+            }else if(values.socket&&(!values.nearby)){
+                requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
+            }else {
+                requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = true
+                requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = true
+            }
+            TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
+            requireView().findViewById<View>(R.id.multidevice).visibility = if(values.nearby) View.VISIBLE else View.GONE
+        }
+        values.bind(requireView().findViewById(R.id.socket), "socket"){
+            if(values.nearby&&(!values.socket)){
+                requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
+            }else if(values.socket&&(!values.nearby)){
+                requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
+            }else {
+                requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = true
+                requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = true
+            }
+        }
         values.bind(requireView().findViewById(R.id.multidevice), "multidevice")
         values.bind(requireView().findViewById(R.id.media), "mediasync")
         values.bind(requireView().findViewById(R.id.media_client_only), "mediaclientonly")
@@ -187,6 +212,11 @@ class HomeFragment() : Fragment() {
         requireView().findViewById<TextView>(R.id.seekValue).text = (values.audioSample/1000).toString()
         requireView().findViewById<RadioButton>(R.id.audio_internal).isEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
         values.onUpdate()
+        requireView().findViewById<ImageView>(R.id.info).setOnClickListener {
+            AskDialog(requireActivity(),(if(values.nearby) resources.getString(R.string.nearby_info)+"\n" else "")+if (values.socket)
+                resources.getString(R.string.socket_info) else "",{},{},false
+                ).show()
+        }
 
         //Card Animations
         val cardList = ArrayList<MaterialCardView>()

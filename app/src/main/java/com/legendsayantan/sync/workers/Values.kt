@@ -28,12 +28,14 @@ class Values(context: Context) {
         prefs.edit().putString(key, value).apply()
     }
 
-    fun bind(switch: CompoundButton, key: String) {
-        switch.isChecked = prefs.getBoolean(key, false)
+    fun bind(switch: CompoundButton, key: String,default: Boolean = false, onChange: () -> Unit = {}){
+        switch.isChecked = prefs.getBoolean(key, default)
         switch.setOnCheckedChangeListener { _, isChecked ->
             set(key, isChecked)
             onUpdate()
+            onChange()
         }
+        onChange()
     }
 
     fun bind(radioButton1: RadioButton, radioButton2: RadioButton, key: String,default: Boolean) {
@@ -65,6 +67,16 @@ class Values(context: Context) {
             }
         })
     }
+    var nearby
+        get() = prefs.getBoolean("nearby", true)
+        set(value) {
+            set("nearby", value)
+        }
+    var socket
+        get() = prefs.getBoolean("socket", false)
+        set(value) {
+            set("socket", value)
+        }
 
     var multiDevice
         get() = prefs.getBoolean("multidevice", false)

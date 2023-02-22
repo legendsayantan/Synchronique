@@ -154,6 +154,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Status - " />
+
                         <TextView
                             android:id="@+id/networkText"
                             android:layout_width="match_parent"
@@ -162,20 +163,45 @@
                             android:text="Idle"
                             android:textSize="14sp" />
 
-                        <ImageView
-                            android:id="@+id/expand"
+
+                    </LinearLayout>
+
+
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:paddingVertical="10dp"
+                        android:orientation="horizontal">
+
+
+
+                        <CheckBox
+                            android:id="@+id/nearby"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:src="@drawable/baseline_settings_24" />
-
-
+                            android:layout_weight="1"
+                            android:text="Nearby" />
+                        <CheckBox
+                            android:id="@+id/socket"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Socket" />
+                        <ImageView
+                            android:id="@+id/info"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_weight="0.5"
+                            android:src="@drawable/outline_info_24" />
                     </LinearLayout>
 
                     <CheckBox
                         android:id="@+id/multidevice"
                         android:layout_width="match_parent"
-                        android:layout_height="20dp"
-                        android:text="Multi-connection" />
+                        android:layout_height="25dp"
+                        android:text="Multi-connection Nearby" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -231,6 +257,8 @@
 
 
                     </LinearLayout>
+
+
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -367,7 +395,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="match_parent"
-                                android:text="Stream Quality" />
+                                android:text="Quality" />
 
                             <SeekBar
                                 android:id="@+id/quality"
