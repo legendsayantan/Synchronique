@@ -33,7 +33,7 @@ import kotlin.collections.ArrayList
  * This worker handles MEDIA_SYNC_PACKET and MEDIA_ACTION_PACKET
  */
 class MediaWorker(var context: Context) {
-
+    private var network : Network = Network(context)
     var count = 0
     var timer = Timer()
     var clientele = object : ArrayList<EndpointInfo>() {
@@ -90,16 +90,7 @@ class MediaWorker(var context: Context) {
         val mediaActionPacket = MediaActionPacket(
             actionType, (System.currentTimeMillis() + 1000)
         )
-        val payload = Payload.fromBytes(
-            PayloadPacket.toEncBytes(
-                PayloadPacket(
-                    PayloadPacket.Companion.PayloadType.MEDIA_ACTION_PACKET, mediaActionPacket
-                )
-            )
-        )
-        for (client in clientele) {
-            Nearby.getConnectionsClient(context).sendPayload(client.id, payload)
-        }
+        network.push(mediaActionPacket)
         if(!Values(context).mediaClientOnly){
             recvMediaAction(mediaActionPacket)
         }
@@ -120,16 +111,7 @@ class MediaWorker(var context: Context) {
             println("Current Timestamp: $position")
             println("Is Playing: $isPlaying")
             val m = MediaSyncPacket(title, artist, position, duration, isPlaying)
-            val p = Payload.fromBytes(
-                PayloadPacket.toEncBytes(
-                    PayloadPacket(
-                        PayloadPacket.Companion.PayloadType.MEDIA_SYNC_PACKET, m
-                    )
-                )
-            )
-            for (client in clientele) {
-                Nearby.getConnectionsClient(context).sendPayload(client.id, p);
-            }
+            network.push(m)
         }
     }
 

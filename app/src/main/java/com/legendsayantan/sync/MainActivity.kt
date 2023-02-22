@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        cardAnimator = CardAnimator(this)
+        cardAnimator = CardAnimator()
         supportActionBar?.setBackgroundDrawable(ColorDrawable(window.statusBarColor))
         bottomAppBar = findViewById(R.id.bottomBar);
         firebaseAuth = Firebase.auth

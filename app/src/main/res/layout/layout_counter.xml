@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="?attr/backgroundColor"
+    android:gravity="center"
+    android:layout_height="wrap_content">
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/negative"
+        android:layout_width="wrap_content"
+        app:cardBackgroundColor="?attr/backgroundColor"
+        app:cardCornerRadius="25dp"
+        app:strokeWidth="2dp"
+        app:strokeColor="?attr/colorPrimary"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:src="@drawable/baseline_exposure_neg_1_24"
+            android:layout_width="40dp"
+            android:scaleX="0.75"
+            android:scaleY="0.75"
+            android:layout_height="40dp"/>
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:layout_marginHorizontal="15dp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:text="1" />
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/positive"
+        android:layout_width="wrap_content"
+        app:cardBackgroundColor="?attr/backgroundColor"
+        app:cardCornerRadius="25dp"
+        app:strokeWidth="2dp"
+        app:strokeColor="?attr/colorPrimary"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:src="@drawable/baseline_exposure_plus_1_24"
+            android:layout_width="40dp"
+            android:scaleX="0.75"
+            android:scaleY="0.75"
+            android:layout_height="40dp"/>
+    </com.google.android.material.card.MaterialCardView>
+</LinearLayout>

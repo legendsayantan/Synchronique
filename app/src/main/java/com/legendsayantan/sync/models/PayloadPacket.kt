@@ -21,15 +21,17 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
                     PayloadType.MEDIA_SYNC_PACKET -> MediaSyncPacket::class.java
                     PayloadType.MEDIA_ACTION_PACKET -> MediaActionPacket::class.java
                     PayloadType.TRIGGER_PACKET -> TriggerPacket::class.java
-                    PayloadType.NOTIFICATION_PACKET -> TODO()
-                    PayloadType.NOTIFICATION_REPLY -> TODO()
+                    PayloadType.NOTIFICATION_PACKET -> NotificationData::class.java
+                    PayloadType.NOTIFICATION_REPLY -> NotificationReply::class.java
                     PayloadType.DISCONNECT -> TODO()
+                    PayloadType.UNKNOWN -> TODO()
                 }
             )
             return packet
         }
 
         enum class PayloadType {
+            UNKNOWN,
             CONFIG_PACKET,
             MEDIA_SYNC_PACKET,
             MEDIA_ACTION_PACKET,

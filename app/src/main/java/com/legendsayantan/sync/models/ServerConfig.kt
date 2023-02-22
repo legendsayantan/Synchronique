@@ -14,6 +14,5 @@ class ServerConfig(
 ) {
     constructor(values: Values) : this(values.multiDevice,
         ClientConfig(values), values.mediaClientOnly, values.audioStreamMic, values.notiReply) {
-
     }
 }

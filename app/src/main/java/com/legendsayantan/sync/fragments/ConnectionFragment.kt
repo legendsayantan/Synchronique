@@ -2,6 +2,7 @@ package com.legendsayantan.sync.fragments
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.database.DataSetObserver
 import android.os.Bundle
 import android.transition.TransitionManager
 import androidx.fragment.app.Fragment
@@ -17,13 +18,16 @@ import com.google.android.gms.nearby.connection.*
 import com.google.android.material.card.MaterialCardView
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.models.PayloadPacket
+import com.legendsayantan.sync.adapters.NotificationListAdapter
+import com.legendsayantan.sync.models.NotificationData
 import com.legendsayantan.sync.services.LookupService
 import com.legendsayantan.sync.services.ClientService
 import com.legendsayantan.sync.services.ServerService
 import com.legendsayantan.sync.services.WaitForConnectionService
 import com.legendsayantan.sync.views.AskDialog
 import com.legendsayantan.sync.views.ConnectionDialog
+import com.legendsayantan.sync.workers.CardAnimator
+import com.legendsayantan.sync.workers.Network
 import com.legendsayantan.sync.workers.Values
 import java.util.*
 import kotlin.collections.ArrayList
@@ -42,8 +46,9 @@ class ConnectionFragment : Fragment() {
     private var param2: String? = null
     private lateinit var singleLookupButton: MaterialCardView
     private lateinit var multiLookupButton: MaterialCardView
-    private lateinit var accessCard: MaterialCardView
-    private lateinit var connectionCard: MaterialCardView
+    private lateinit var accessCard: View
+    private lateinit var connectionCard: View
+    lateinit var network: Network
     var noticount = 0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,7 +90,7 @@ class ConnectionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         instance = this
-
+        network = Network(requireContext())
         accessCard = requireView().findViewById(R.id.accessCard)
         connectionCard = requireView().findViewById(R.id.connectCard)
         singleLookupButton = requireView().findViewById(R.id.singleCard)
@@ -128,8 +133,7 @@ class ConnectionFragment : Fragment() {
                         {
                             WaitForConnectionService.instance.stopSelf()
                             ServerService.instance?.stopSelf()
-                        },
-                        {}).show()
+                        })
                 }
                 Values.Companion.AppState.WAITING -> {
                     AskDialog(
@@ -138,8 +142,7 @@ class ConnectionFragment : Fragment() {
                         {
                             WaitForConnectionService.instance.stopSelf()
                             ServerService.instance?.stopSelf()
-                        },
-                        {}).show()
+                        })
                 }
                 else -> {
                     singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =
@@ -184,8 +187,7 @@ class ConnectionFragment : Fragment() {
                         {
                             WaitForConnectionService.instance.stopSelf()
                             ServerService.instance?.stopSelf()
-                        },
-                        {}).show()
+                        })
                 }
                 Values.Companion.AppState.WAITING -> {
                     AskDialog(
@@ -194,8 +196,7 @@ class ConnectionFragment : Fragment() {
                         {
                             WaitForConnectionService.instance.stopSelf()
                             ServerService.instance?.stopSelf()
-                        },
-                        {}).show()
+                        })
                 }
                 else -> {
                     multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =
@@ -284,7 +285,7 @@ class ConnectionFragment : Fragment() {
 
     private fun updateSpecifiedList(listView: ListView, list: List<String>) {
         listView.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, list)
-        listView.setOnItemClickListener { parent, view, position, id ->
+        listView.setOnItemClickListener { _, _, position, _ ->
             val endpoint = LookupService.endpoints[position]
             ConnectionDialog(requireActivity(),
                 "Advertiser Details",
@@ -311,33 +312,45 @@ class ConnectionFragment : Fragment() {
         val name = requireView().findViewById<TextView>(R.id.name)
         val hash = requireView().findViewById<TextView>(R.id.hash)
         val disconnectBtn = requireView().findViewById<MaterialCardView>(R.id.disconnectBtn)
-        val media_access = requireView().findViewById<LinearLayout>(R.id.media_access)
-        val audio_access = requireView().findViewById<LinearLayout>(R.id.audio_access)
-        val shutter_access = requireView().findViewById<LinearLayout>(R.id.shutter_access)
-        val noti_access = requireView().findViewById<LinearLayout>(R.id.noti_access)
+        val media_access = requireView().findViewById<View>(R.id.media_access)
+        val audio_access = requireView().findViewById<View>(R.id.audio_access)
+        val trigger_access = requireView().findViewById<View>(R.id.trigger_access)
+        val noti_access = requireView().findViewById<View>(R.id.noti_access)
         name.text = Values.connectedServer?.name
-        hash.text = Values.connectedServer?.uidHash
+        hash.text = Values.connectedServer?.uidHash.also {
+            it?.substring(0, it.length / 3) + " " + it?.substring(
+                it.length / 3,
+                it.length * 2 / 3
+            ) + " " + it?.substring(it.length * 2 / 3, it.length)
+        }
         disconnectBtn.setOnClickListener {
-            Nearby.getConnectionsClient(requireContext()).sendPayload(
-                Values.connectedServer?.id ?: "",
-                Payload.fromBytes(
-                    PayloadPacket.toEncBytes(
-                        PayloadPacket(
-                            PayloadPacket.Companion.PayloadType.DISCONNECT,
-                            ByteArray(0)
-                        )
-                    )
-                )
-            )
-            Nearby.getConnectionsClient(requireContext())
-                .disconnectFromEndpoint(Values.connectedServer?.id ?: "")
-            Values.appState = Values.Companion.AppState.IDLE
+            AskDialog(requireActivity(),
+                "Are you sure you want to disconnect?",
+                {
+                    network.disconnect()
+                    Values.appState = Values.Companion.AppState.IDLE
+                })
         }
         media_access.visibility = if (ClientService.clientConfig.media) View.VISIBLE else View.GONE
         audio_access.visibility = if (ClientService.clientConfig.audio) View.VISIBLE else View.GONE
-        shutter_access.visibility =
-            if (ClientService.clientConfig.camera) View.VISIBLE else View.GONE
+        trigger_access.visibility =
+            if (ClientService.clientConfig.trigger) View.VISIBLE else View.GONE
         noti_access.visibility = if (ClientService.clientConfig.noti) View.VISIBLE else View.GONE
+        val cardList = java.util.ArrayList<MaterialCardView>()
+        cardList.add(trigger_access as MaterialCardView)
+        cardList.add(noti_access as MaterialCardView)
+        CardAnimator.initExpandableCards(cardList)
+        //notification list
+        val notiList = requireView().findViewById<ListView>(R.id.noti_list)
+        notiList.adapter = NotificationListAdapter(requireContext(),ClientService.notificationDataList)
+        ClientService.onNotificationData ={
+            if(isAdded){
+                val firstVisibleItem = notiList.firstVisiblePosition
+                val topOffset = notiList.getChildAt(0)?.top ?: 0
+                notiList.adapter = NotificationListAdapter(requireContext(),ClientService.notificationDataList)
+                notiList.setSelectionFromTop(firstVisibleItem, topOffset)
+            }
+        }
     }
 
     fun stopDiscover() {

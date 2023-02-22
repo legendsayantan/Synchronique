@@ -302,7 +302,7 @@
                             android:layout_weight="1"
                             android:textColor="?attr/colorPrimary"
                             android:text="Media Controller"
-                            android:textSize="14sp" />
+                            android:textSize="15sp" />
                     </LinearLayout>
                     <LinearLayout
                         android:orientation="vertical"
@@ -355,7 +355,7 @@
                             android:layout_weight="1"
                             android:textColor="?attr/colorPrimary"
                             android:text="Audio Stream"
-                            android:textSize="14sp" />
+                            android:textSize="15sp" />
 
                     </LinearLayout>
 
@@ -460,13 +460,13 @@
                             android:src="@drawable/baseline_camera_24" />
 
                         <Switch
-                            android:id="@+id/shutter"
+                            android:id="@+id/trigger"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:textColor="?attr/colorPrimary"
                             android:text="Remote Trigger"
-                            android:textSize="14sp" />
+                            android:textSize="15sp" />
                     </LinearLayout>
 
 
@@ -515,7 +515,7 @@
                             android:layout_weight="1"
                             android:textColor="?attr/colorPrimary"
                             android:text="Remote Notifications"
-                            android:textSize="14sp" />
+                            android:textSize="15sp" />
                     </LinearLayout>
 
 

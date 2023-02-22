@@ -56,7 +56,7 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
             .build()
 
 
-        val BUFFER_SIZE = AudioRecord.getMinBufferSize(sampleRate, Values.AUDIO_CONFIG, Values.AUDIO_FORMAT)
+        val bufferSizeInBytes = 2 * AudioRecord.getMinBufferSize(sampleRate, Values.AUDIO_CONFIG, Values.AUDIO_FORMAT)
 
         if (ActivityCompat.checkSelfPermission(
                 context,
@@ -67,13 +67,13 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
         }
         audioRecord = AudioRecord.Builder()
             .setAudioFormat(audioFormat)
-            .setBufferSizeInBytes(BUFFER_SIZE)
+            .setBufferSizeInBytes(bufferSizeInBytes)
             .setAudioPlaybackCaptureConfig(config)
             .build()
 
         audioRecord.startRecording()
         var errorCount = 0
-        val buffer = ByteArray(BUFFER_SIZE)
+        val buffer = ByteArray(bufferSizeInBytes)
         transferThread = Thread {
             while (true) {
                 val result = audioRecord.read(buffer, 0, buffer.size)
@@ -82,17 +82,17 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
                     errorCount--
                 } catch (e: Exception) {
                     errorCount++
-                }
-                if(errorCount > 10) {
-                    Nearby.getConnectionsClient(context).stopAllEndpoints()
-                    val notification = Notification.Builder(context, Notifications(context).connection_channel)
-                        .setContentTitle("Audio Stream (System)")
-                        .setContentText("Connection timed out!")
-                        .setSmallIcon(R.drawable.ic_launcher_foreground)
-                        .build()
-                    val manager = (context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager)
-                    manager.notify(Values.REQUEST_CODE_CAPTURE_PERM, notification)
-                    break
+                    if(errorCount > 10) {
+                        Nearby.getConnectionsClient(context).stopAllEndpoints()
+                        val notification = Notification.Builder(context, Notifications(context).connection_channel)
+                            .setContentTitle("Audio Stream (System)")
+                            .setContentText("Connection timed out!")
+                            .setSmallIcon(R.drawable.ic_launcher_foreground)
+                            .build()
+                        val manager = (context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager)
+                        manager.notify(Values.REQUEST_CODE_CAPTURE_PERM, notification)
+                        break
+                    }
                 }
             }
             println("Transfer thread streaming")
@@ -101,7 +101,7 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
     }
     fun startAudioRecord(){
         println("start audio record")
-        val bufferSize = AudioRecord.getMinBufferSize(
+        val bufferSize = 2 * AudioRecord.getMinBufferSize(
             sampleRate,
             Values.AUDIO_CONFIG,
             Values.AUDIO_FORMAT
@@ -132,18 +132,19 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
                         errorCount--
                     } catch (e: Exception) {
                         errorCount++
+                        if(errorCount > 10) {
+                            Nearby.getConnectionsClient(context).stopAllEndpoints()
+                            val notification = Notification.Builder(context, Notifications(context).connection_channel)
+                                .setContentTitle("Audio Stream (Mic)")
+                                .setContentText("Connection timed out!")
+                                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                                .build()
+                            val manager = (context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager)
+                            manager.notify(Values.REQUEST_CODE_CAPTURE_PERM, notification)
+                            break
+                        }
                     }
-                    if(errorCount > 10) {
-                        Nearby.getConnectionsClient(context).stopAllEndpoints()
-                        val notification = Notification.Builder(context, Notifications(context).connection_channel)
-                            .setContentTitle("Audio Stream (Mic)")
-                            .setContentText("Connection timed out!")
-                            .setSmallIcon(R.drawable.ic_launcher_foreground)
-                            .build()
-                        val manager = (context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager)
-                        manager.notify(Values.REQUEST_CODE_CAPTURE_PERM, notification)
-                        break
-                    }
+
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -166,19 +167,18 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
             bufferSize,
             AudioTrack.MODE_STREAM
         )
+        val buffer = ByteArray(bufferSize)
+        var length: Int
         audioTrack.play()
         transferThread = Thread {
             try {
                 payload.asStream()!!.asInputStream().use { inputStream ->
-                    val buffer = ByteArray(bufferSize)
-                    var length: Int
                     while (inputStream.read(buffer).also { length = it } > 0) {
                         audioTrack.write(buffer, 0, length)
                     }
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
-                transferThread.interrupt()
             }
         }
         transferThread.start()

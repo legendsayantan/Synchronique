@@ -9,7 +9,7 @@ class ClientConfig(
     var media: Boolean,
     var audio: Boolean,
     var audioSample: Int,
-    var camera: Boolean,
+    var trigger: Boolean,
     var noti: Boolean,
 ) {
     constructor(values: Values) : this(values.mediaSync, values.audioStream, values.audioSample, values.triggerButtons, values.notiShare) {

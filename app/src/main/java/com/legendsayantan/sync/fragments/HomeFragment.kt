@@ -20,12 +20,10 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import com.google.android.gms.nearby.Nearby
-import com.google.android.gms.nearby.connection.Payload
 import com.google.android.material.card.MaterialCardView
 import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.models.PayloadPacket
 import com.legendsayantan.sync.models.ServerConfig
 import com.legendsayantan.sync.services.ClientService
 import com.legendsayantan.sync.services.LookupService
@@ -34,6 +32,7 @@ import com.legendsayantan.sync.services.WaitForConnectionService
 import com.legendsayantan.sync.views.AskDialog
 import com.legendsayantan.sync.workers.Values
 import com.legendsayantan.sync.workers.CardAnimator
+import com.legendsayantan.sync.workers.Network
 import com.legendsayantan.sync.workers.PermissionManager
 import java.util.*
 import kotlin.collections.ArrayList
@@ -55,6 +54,7 @@ class HomeFragment() : Fragment() {
     lateinit var values: Values
     lateinit var startBtn: MaterialCardView
     var firstTime = true
+    lateinit var network: Network
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -89,6 +89,7 @@ class HomeFragment() : Fragment() {
                     putString(ARG_PARAM2, param2)
                 }
             }
+
         var latestInstance: HomeFragment? = null
     }
 
@@ -96,6 +97,7 @@ class HomeFragment() : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         latestInstance = this
+        network = Network(requireContext())
         println("Home fragment Started")
         //initialisations
         values = Values(requireContext())
@@ -127,11 +129,9 @@ class HomeFragment() : Fragment() {
             }
         }
         requireView().findViewById<ImageView>(R.id.signOut).setOnClickListener {
-            AskDialog(requireActivity(),"Sign out of your account ?",{
+            AskDialog(requireActivity(), "Sign out of your account ?", {
                 (requireActivity() as MainActivity).signOut()
-            },{
-
-            }).show()
+            })
         }
         val uid = firebaseAuth.currentUser?.uid.hashCode().toString()
         requireView().findViewById<TextView>(R.id.hash).text =
@@ -139,7 +139,7 @@ class HomeFragment() : Fragment() {
                 uid.length / 3,
                 uid.length * 2 / 3
             ) + " " + uid.substring(uid.length * 2 / 3, uid.length)
-        if(firstTime){
+        if (firstTime) {
             firstTime = false
             CardAnimator.staggerList(requireView().findViewById(R.id.homeList))
         }
@@ -150,11 +150,11 @@ class HomeFragment() : Fragment() {
         super.onResume()
         //bindings
         values.onUpdate = {
-            if (Values.appState==Values.Companion.AppState.IDLE) {
+            if (Values.appState == Values.Companion.AppState.IDLE) {
                 WaitForConnectionService.serverConfig = ServerConfig(values)
                 requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled = true
                 println("serverConfig setup")
-            }else if (Values.appState == Values.Companion.AppState.WAITING){
+            } else if (Values.appState == Values.Companion.AppState.WAITING) {
 
             }
             requireView().findViewById<ImageView>(R.id.imageSync).animate().alpha(
@@ -164,31 +164,33 @@ class HomeFragment() : Fragment() {
                 if (WaitForConnectionService.serverConfig!!.clientConfig.audio) 1F else 0.3F
             ).setDuration(250).start()
             requireView().findViewById<ImageView>(R.id.imageShutter).animate().alpha(
-                if (WaitForConnectionService.serverConfig!!.clientConfig.camera) 1F else 0.3F
+                if (WaitForConnectionService.serverConfig!!.clientConfig.trigger) 1F else 0.3F
             ).setDuration(250).start()
             requireView().findViewById<ImageView>(R.id.imageNoti).animate().alpha(
                 if (WaitForConnectionService.serverConfig!!.clientConfig.noti) 1F else 0.3F
             ).setDuration(250).start()
-            requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled = (Values.appState==Values.Companion.AppState.IDLE)
+            requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled =
+                (Values.appState == Values.Companion.AppState.IDLE)
         }
-        values.bind(requireView().findViewById(R.id.nearby), "nearby",true){
-            if(values.nearby&&(!values.socket)){
+        values.bind(requireView().findViewById(R.id.nearby), "nearby", true) {
+            if (values.nearby && (!values.socket)) {
                 requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
-            }else if(values.socket&&(!values.nearby)){
+            } else if (values.socket && (!values.nearby)) {
                 requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
-            }else {
+            } else {
                 requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = true
                 requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = true
             }
             TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
-            requireView().findViewById<View>(R.id.multidevice).visibility = if(values.nearby) View.VISIBLE else View.GONE
+            requireView().findViewById<View>(R.id.multidevice).visibility =
+                if (values.nearby) View.VISIBLE else View.GONE
         }
-        values.bind(requireView().findViewById(R.id.socket), "socket"){
-            if(values.nearby&&(!values.socket)){
+        values.bind(requireView().findViewById(R.id.socket), "socket") {
+            if (values.nearby && (!values.socket)) {
                 requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
-            }else if(values.socket&&(!values.nearby)){
+            } else if (values.socket && (!values.nearby)) {
                 requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
-            }else {
+            } else {
                 requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = true
                 requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = true
             }
@@ -197,7 +199,7 @@ class HomeFragment() : Fragment() {
         values.bind(requireView().findViewById(R.id.media), "mediasync")
         values.bind(requireView().findViewById(R.id.media_client_only), "mediaclientonly")
         values.bind(requireView().findViewById(R.id.audio), "audiostream")
-        values.bind(requireView().findViewById(R.id.shutter), "camerashutter")
+        values.bind(requireView().findViewById(R.id.trigger), "camerashutter")
         values.bind(requireView().findViewById(R.id.noti), "notishare")
         values.bind(requireView().findViewById(R.id.noti_reply), "notireply")
         values.bind(
@@ -209,13 +211,19 @@ class HomeFragment() : Fragment() {
         values.bind(requireView().findViewById(R.id.quality), "audiosample", 8000) {
             requireView().findViewById<TextView>(R.id.seekValue).text = it.toString()
         }
-        requireView().findViewById<TextView>(R.id.seekValue).text = (values.audioSample/1000).toString()
-        requireView().findViewById<RadioButton>(R.id.audio_internal).isEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        requireView().findViewById<TextView>(R.id.seekValue).text =
+            (values.audioSample / 1000).toString()
+        requireView().findViewById<RadioButton>(R.id.audio_internal).isEnabled =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
         values.onUpdate()
         requireView().findViewById<ImageView>(R.id.info).setOnClickListener {
-            AskDialog(requireActivity(),(if(values.nearby) resources.getString(R.string.nearby_info)+"\n" else "")+if (values.socket)
-                resources.getString(R.string.socket_info) else "",{},{},false
-                ).show()
+            AskDialog(requireActivity(),
+                (if (values.nearby) resources.getString(R.string.nearby_info) + "\n" else "") +
+                        (if (values.socket) resources.getString(R.string.socket_info) else ""),
+                {},
+                {},
+                false
+            )
         }
 
         //Card Animations
@@ -223,11 +231,11 @@ class HomeFragment() : Fragment() {
         cardList.add(requireView().findViewById(R.id.mediaCard))
         cardList.add(requireView().findViewById(R.id.audioCard))
         cardList.add(requireView().findViewById(R.id.notiCard))
-        CardAnimator.initTogglableCards(cardList)
+        CardAnimator.initToggleableCards(cardList)
 
         //run
         startBtn.setOnClickListener {
-            when(Values.appState){
+            when (Values.appState) {
                 Values.Companion.AppState.IDLE -> {
                     if (MainActivity.isLocationEnabled(requireContext())) {
                         startToAdvertise()
@@ -244,51 +252,79 @@ class HomeFragment() : Fragment() {
                 }
                 Values.Companion.AppState.LOADING -> return@setOnClickListener
                 Values.Companion.AppState.WAITING -> {
-                    requireContext().stopService(Intent(requireContext(),WaitForConnectionService::class.java))
-                    requireContext().stopService(Intent(requireContext(),ServerService::class.java))
+                    requireContext().stopService(
+                        Intent(
+                            requireContext(),
+                            WaitForConnectionService::class.java
+                        )
+                    )
+                    requireContext().stopService(
+                        Intent(
+                            requireContext(),
+                            ServerService::class.java
+                        )
+                    )
                 }
                 Values.Companion.AppState.LOOKING -> {
-                    AskDialog(requireActivity(),"Stop looking for nearby devices and start your own server?",{
-                        Nearby.getConnectionsClient(requireContext()).stopDiscovery()
-                        requireContext().stopService(Intent(requireContext(),LookupService::class.java))
-                        Values.appState = Values.Companion.AppState.IDLE
-                        if (MainActivity.isLocationEnabled(requireContext())) {
-                            startToAdvertise()
-                        } else {
-                            //ask to enable location
-                            enableLocationSettings()
-                        }
-                    },{}).show()
+                    AskDialog(
+                        requireActivity(),
+                        "Stop looking for nearby devices and start your own server?",
+                        {
+                            Nearby.getConnectionsClient(requireContext()).stopDiscovery()
+                            requireContext().stopService(
+                                Intent(
+                                    requireContext(),
+                                    LookupService::class.java
+                                )
+                            )
+                            Values.appState = Values.Companion.AppState.IDLE
+                            if (MainActivity.isLocationEnabled(requireContext())) {
+                                startToAdvertise()
+                            } else {
+                                //ask to enable location
+                                enableLocationSettings()
+                            }
+                        })
                 }
                 Values.Companion.AppState.CONNECTED -> {
-                    AskDialog(requireActivity(),"Network is connected. Do you want to disconnect and stop? ",{
-                        for(client in Values.connectedClients){
-                            Nearby.getConnectionsClient(requireContext()).sendPayload(client.id,
-                                Payload.fromBytes(
-                                    PayloadPacket.toEncBytes(
-                                        PayloadPacket(PayloadPacket.Companion.PayloadType.DISCONNECT,ByteArray(0))
-                                    )
-                                ))
-                        }
-                        Nearby.getConnectionsClient(requireContext()).stopAllEndpoints()
-                        requireContext().stopService(Intent(requireContext(),WaitForConnectionService::class.java))
-                        requireContext().stopService(Intent(requireContext(),ServerService::class.java))
-                        Values.appState = Values.Companion.AppState.IDLE
-                    },{
-
-                    }).show()
+                    AskDialog(
+                        requireActivity(),
+                        "Network is connected. Do you want to disconnect and stop? ",
+                        {
+                            network.disconnect()
+                            requireContext().stopService(
+                                Intent(
+                                    requireContext(),
+                                    WaitForConnectionService::class.java
+                                )
+                            )
+                            requireContext().stopService(
+                                Intent(
+                                    requireContext(),
+                                    ServerService::class.java
+                                )
+                            )
+                            Values.appState = Values.Companion.AppState.IDLE
+                        })
                 }
                 Values.Companion.AppState.ACCESSING -> {
-                    AskDialog(requireActivity(),"Do you want to stop accessing ${Values.connectedServer?.name} and start your own connection instead?",{
-                        requireContext().stopService(Intent(requireContext(),ClientService::class.java))
-                    },{
-
-                    }).show()
+                    AskDialog(
+                        requireActivity(),
+                        "Do you want to stop accessing ${Values.connectedServer?.name} and start your own connection instead?",
+                        {
+                            requireContext().stopService(
+                                Intent(
+                                    requireContext(),
+                                    ClientService::class.java
+                                )
+                            )
+                        })
                 }
             }
         }
-        appStateUpdate(Values.appState==Values.Companion.AppState.IDLE)
+        appStateUpdate(Values.appState == Values.Companion.AppState.IDLE)
     }
+
     @SuppressLint("UseSwitchCompatOrMaterialCode")
     fun permissions() {
         val locationSwitch = requireView().findViewById<Switch>(R.id.locPermission)
@@ -329,7 +365,7 @@ class HomeFragment() : Fragment() {
 
 
     @SuppressLint("UseCompatLoadingForDrawables")
-    private fun appStateUpdate(disableAnim:Boolean=false) {
+    private fun appStateUpdate(disableAnim: Boolean = false) {
         val text = when (Values.appState) {
             Values.Companion.AppState.IDLE -> "Idle"
             Values.Companion.AppState.PERMS -> "Checking permissions"
@@ -339,21 +375,23 @@ class HomeFragment() : Fragment() {
             Values.Companion.AppState.ACCESSING -> Values.connectionText
             else -> null
         }
-        if (disableAnim){
+        if (disableAnim) {
             requireView().findViewById<TextView>(R.id.networkText).text = text
-        }else{
+        } else {
             setStatusText(text, Values.appState != Values.Companion.AppState.IDLE)
         }
         (startBtn.getChildAt(0) as ImageView).setImageDrawable(
-            requireContext().getDrawable(when (Values.appState) {
-                Values.Companion.AppState.IDLE -> R.drawable.baseline_play_arrow_24
-                Values.Companion.AppState.LOADING -> R.drawable.baseline_hourglass_bottom_24
-                Values.Companion.AppState.PERMS -> R.drawable.baseline_hourglass_bottom_24
-                Values.Companion.AppState.WAITING -> R.drawable.baseline_close_24
-                Values.Companion.AppState.LOOKING -> R.drawable.baseline_play_arrow_24
-                Values.Companion.AppState.CONNECTED -> R.drawable.baseline_close_24
-                Values.Companion.AppState.ACCESSING -> R.drawable.baseline_play_arrow_24
-            })
+            requireContext().getDrawable(
+                when (Values.appState) {
+                    Values.Companion.AppState.IDLE -> R.drawable.baseline_play_arrow_24
+                    Values.Companion.AppState.LOADING -> R.drawable.baseline_hourglass_bottom_24
+                    Values.Companion.AppState.PERMS -> R.drawable.baseline_hourglass_bottom_24
+                    Values.Companion.AppState.WAITING -> R.drawable.baseline_close_24
+                    Values.Companion.AppState.LOOKING -> R.drawable.baseline_play_arrow_24
+                    Values.Companion.AppState.CONNECTED -> R.drawable.baseline_close_24
+                    Values.Companion.AppState.ACCESSING -> R.drawable.baseline_play_arrow_24
+                }
+            )
         )
     }
 
@@ -383,13 +421,23 @@ class HomeFragment() : Fragment() {
         PermissionManager(requireActivity()).ask(WaitForConnectionService.serverConfig!!) {
             Timer().scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
-                    if(isAdded){
-                        requireContext().startForegroundService(Intent(requireContext(), WaitForConnectionService::class.java))
-                        requireContext().startForegroundService(Intent(requireContext(), ServerService::class.java))
+                    if (isAdded) {
+                        requireContext().startForegroundService(
+                            Intent(
+                                requireContext(),
+                                WaitForConnectionService::class.java
+                            )
+                        )
+                        requireContext().startForegroundService(
+                            Intent(
+                                requireContext(),
+                                ServerService::class.java
+                            )
+                        )
                         cancel()
                     }
                 }
-            }, 1000,500)
+            }, 1000, 500)
         }
     } else {
         nothingSelected()
@@ -403,7 +451,7 @@ class HomeFragment() : Fragment() {
             .start()
         Timer().schedule(object : TimerTask() {
             override fun run() {
-                if(isAdded)requireActivity().runOnUiThread {
+                if (isAdded) requireActivity().runOnUiThread {
                     textView.translationY = (if (fromTop) -1f else 1f) * textView.height.toFloat()
                     textView.text = string
                     textView.animate().alpha(1f).translationY(0f).setDuration(250).start()
@@ -489,8 +537,9 @@ class HomeFragment() : Fragment() {
             }
         }, 500, 500)
     }
-    fun refreshFragment(){
-        if(isAdded){
+
+    fun refreshFragment() {
+        if (isAdded) {
             permissions()
         }
     }

@@ -17,7 +17,7 @@ class ConnectionDialog(
     var name:String,
     var hash:String,
     var btn: String,
-    var onAction: (dialog:ConnectionDialog) -> Unit = { connectionDialog: ConnectionDialog -> },
+    var onAction: (dialog:ConnectionDialog) -> Unit = { },
     var onDismiss: () -> Unit = {}) {
     val d = Dialog(activity)
     fun show(){

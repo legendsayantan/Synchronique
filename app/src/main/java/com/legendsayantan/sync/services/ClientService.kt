@@ -27,6 +27,9 @@ class ClientService : Service() {
     lateinit var audioWorker: AudioWorker
 
     lateinit var startStreamReceivers: () -> Unit
+
+    lateinit var network: Network
+
     override fun onBind(intent: Intent): IBinder {
         return null!!
     }
@@ -35,6 +38,7 @@ class ClientService : Service() {
         super.onCreate()
         instance = this
         values = Values(applicationContext)
+        network = Network(applicationContext)
         val notification =
             Notification.Builder(this, Notifications(applicationContext).client_channel)
                 .setContentTitle("Client Service")
@@ -56,17 +60,7 @@ class ClientService : Service() {
             transferThread.interrupt()
         } catch (_: java.lang.Exception) {
         }
-        Nearby.getConnectionsClient(applicationContext).sendPayload(
-            serverEndpoint.id,
-            Payload.fromBytes(
-                PayloadPacket.toEncBytes(
-                    PayloadPacket(PayloadPacket.Companion.PayloadType.DISCONNECT, ByteArray(0))
-                )
-            )
-        ).addOnCompleteListener {
-            Nearby.getConnectionsClient(applicationContext)
-                .disconnectFromEndpoint(serverEndpoint.id)
-        }
+        network.disconnect()
         super.onDestroy()
     }
 
@@ -187,6 +181,18 @@ class ClientService : Service() {
                 if (clientConfig.audio) {
                     audioWorker = AudioWorker(this, null, clientConfig.audioSample)
                 }
+                if(clientConfig.trigger){
+
+                }
+                if(clientConfig.noti){
+                    notificationDataList = object : ArrayList<NotificationData>(){
+                        override fun add(element: NotificationData): Boolean {
+                            val x = super.add(element)
+                            onNotificationData()
+                            return x
+                        }
+                    }
+                }
                 Values.appState = Values.Companion.AppState.ACCESSING
                 try {
                     startStreamReceivers()
@@ -217,9 +223,19 @@ class ClientService : Service() {
             PayloadPacket.Companion.PayloadType.MEDIA_ACTION_PACKET -> {
                 mediaWorker.recvMediaAction(payloadPacket.data as MediaActionPacket)
             }
-            PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> TODO()
-            PayloadPacket.Companion.PayloadType.NOTIFICATION_PACKET -> TODO()
-            PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY -> TODO()
+            PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> {}
+            PayloadPacket.Companion.PayloadType.NOTIFICATION_PACKET -> {
+                val nData = payloadPacket.data as NotificationData
+                val search = notificationDataList.find { it.key==nData.key }
+                if(search==null){
+                    notificationDataList.add(nData)
+                }else{
+                    notificationDataList[notificationDataList.indexOf(search)] = nData
+                    onNotificationData()
+                }
+            }
+            PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY -> {}
+            else -> {}
         }
     }
 
@@ -230,5 +246,8 @@ class ClientService : Service() {
         var connectionConfigured: () -> Unit = {}
         lateinit var clientConfig: ClientConfig
         lateinit var serverEndpoint: EndpointInfo
+
+        lateinit var notificationDataList: ArrayList<NotificationData>
+        var onNotificationData: () -> Unit = {}
     }
 }

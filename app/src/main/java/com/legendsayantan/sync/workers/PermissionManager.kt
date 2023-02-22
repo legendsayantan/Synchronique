@@ -73,8 +73,8 @@ class PermissionManager(var activity: Activity) {
                 )
             }
         }
-        if(serverConfig.clientConfig.camera){
-            //ask for camera permission
+        if(serverConfig.clientConfig.trigger){
+            //ask for accessibility service
         }
         if(serverConfig.clientConfig.noti){
             //ask for notification permission
@@ -130,7 +130,7 @@ class PermissionManager(var activity: Activity) {
         if(clientConfig.audio){
             //nothing required
         }
-        if(clientConfig.camera){
+        if(clientConfig.trigger){
             //nothing required
         }
         if(clientConfig.noti){

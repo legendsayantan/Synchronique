@@ -15,11 +15,7 @@ import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.EndpointInfo
 import com.legendsayantan.sync.models.PayloadPacket
 import com.legendsayantan.sync.models.ServerConfig
-import com.legendsayantan.sync.workers.AudioWorker
-import com.legendsayantan.sync.workers.MediaWorker
-import com.legendsayantan.sync.workers.Notifications
-import com.legendsayantan.sync.workers.Values
-import java.util.*
+import com.legendsayantan.sync.workers.*
 
 class ServerService : Service() {
 
@@ -29,6 +25,7 @@ class ServerService : Service() {
 
     lateinit var mediaWorker : MediaWorker
     lateinit var audioWorker: AudioWorker
+    lateinit var network: Network
     override fun onBind(intent: Intent): IBinder {
         return null!!
     }
@@ -37,6 +34,7 @@ class ServerService : Service() {
         super.onCreate()
         instance = this
         values = Values(applicationContext)
+        network = Network(applicationContext)
         serverConfig = if(WaitForConnectionService.serverConfig==null){
             println("---------------------------------------------------------")
             println("SERVERCONFIG NULL")
@@ -143,18 +141,7 @@ class ServerService : Service() {
     }
 
     override fun onDestroy() {
-        for (endpoint in Values.connectedClients) {
-            Nearby.getConnectionsClient(applicationContext).sendPayload(
-                endpoint.id,
-                Payload.fromBytes(
-                    PayloadPacket.toEncBytes(
-                        PayloadPacket(PayloadPacket.Companion.PayloadType.DISCONNECT, ByteArray(0))
-                    )
-                )
-            ).addOnCompleteListener {
-                Nearby.getConnectionsClient(applicationContext).disconnectFromEndpoint(endpoint.id)
-            }
-        }
+        network.disconnect()
         Values.appState = Values.Companion.AppState.IDLE
         super.onDestroy()
     }
@@ -181,6 +168,14 @@ class ServerService : Service() {
                     audioWorker.startAudioStream()
                 }
             }
+        }
+        if (serverConfig.clientConfig.trigger){
+
+        }
+        if(serverConfig.clientConfig.noti){
+            NotificationListener.allowReply = serverConfig.notiReply
+            NotificationListener.shareNoti = serverConfig.clientConfig.noti
+            startForegroundService(Intent(applicationContext, NotificationListener::class.java))
         }
     }
     private fun serveDataTo(endpointInfo: EndpointInfo){

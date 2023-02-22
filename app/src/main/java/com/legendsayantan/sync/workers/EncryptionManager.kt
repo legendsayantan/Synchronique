@@ -62,7 +62,7 @@ class EncryptionManager {
                 } else {
                     x*7 - ((System.currentTimeMillis()/1000) % (x*7))
                 }
-                remoteConfig.fetch(cacheExpiration).addOnSuccessListener { task ->
+                remoteConfig.fetch(cacheExpiration).addOnSuccessListener {
                     remoteConfig.activate()
                     val formatter = DateTimeFormatter.ofPattern("DDD")
                     val currentDate = LocalDateTime.now().format(formatter)

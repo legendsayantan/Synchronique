@@ -17,8 +17,7 @@ import com.legendsayantan.sync.R
  */
 class AskDialog(var activity: Activity,var string: String, var onYes :() -> Unit = {}, var onNo:() -> Unit = {},var showBtns:Boolean = true) {
     private val d = Dialog(activity)
-    @SuppressLint("MissingInflatedId")
-    fun show(){
+    init{
         val view = activity.layoutInflater.inflate(R.layout.ask_popup, null);
         view.findViewById<TextView>(R.id.textView).text = string
         if(!showBtns) view.findViewById<View>(R.id.btns).visibility = View.GONE
