@@ -62,11 +62,11 @@ public class NotificationUtils {
         Log.d("Info text", "" + extras.getCharSequence(Notification.EXTRA_INFO_TEXT));
         Log.d("Info text", "" + extras.getCharSequence(Notification.EXTRA_INFO_TEXT));
         Log.d("Subtext", "" + extras.getCharSequence(Notification.EXTRA_SUB_TEXT));
-		Log.d("Summary", "" + extras.getString(Notification.EXTRA_SUMMARY_TEXT));
+        Log.d("Summary", "" + extras.getString(Notification.EXTRA_SUMMARY_TEXT));
         CharSequence chars = extras.getCharSequence(Notification.EXTRA_TEXT);
-        if(!TextUtils.isEmpty(chars))
+        if (!TextUtils.isEmpty(chars))
             return chars.toString();
-        else if(!TextUtils.isEmpty((chars = extras.getString(Notification.EXTRA_SUMMARY_TEXT))))
+        else if (!TextUtils.isEmpty((chars = extras.getString(Notification.EXTRA_SUMMARY_TEXT))))
             return chars.toString();
         else
             return null;
@@ -77,7 +77,7 @@ public class NotificationUtils {
         Log.d("NOTIFICATIONUTILS", "Getting message from extras..");
 
         CharSequence[] lines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES);
-        if(lines != null && lines.length > 0) {
+        if (lines != null && lines.length > 0) {
             StringBuilder sb = new StringBuilder();
             for (CharSequence msg : lines)
 //                msg = msg.toString();//.replaceAll("(\\s+$|^\\s+)", "").replaceAll("\n+", "\n");
@@ -88,9 +88,9 @@ public class NotificationUtils {
             return sb.toString().trim();
         }
         CharSequence chars = extras.getCharSequence(Notification.EXTRA_BIG_TEXT);
-        if(!TextUtils.isEmpty(chars))
+        if (!TextUtils.isEmpty(chars))
             return chars.toString();
-        else if(!VersionUtils.isJellyBeanMR2())
+        else if (!VersionUtils.isJellyBeanMR2())
             return getExtended(v);
         else
             return getMessage(extras);
@@ -181,40 +181,38 @@ public class NotificationUtils {
         return msg;
     }
 
-    /** OLD/CURRENT METHODS **/
+    /**
+     * OLD/CURRENT METHODS
+     **/
 
-    public static ViewGroup getView(Context context, RemoteViews view)
-    {
+    public static ViewGroup getView(Context context, RemoteViews view) {
         ViewGroup localView = null;
-        try
-        {
+        try {
             LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             localView = (ViewGroup) inflater.inflate(view.getLayoutId(), null);
             view.reapply(context, localView);
-        }
-        catch (Exception exp)
-        {
+        } catch (Exception exp) {
         }
         return localView;
     }
 
     @SuppressLint("NewApi")
-    public static ViewGroup getLocalView(Context context, Notification n)
-    {
+    public static ViewGroup getLocalView(Context context, Notification n) {
         RemoteViews view = null;
-        if(Build.VERSION.SDK_INT >= 16) { view = n.bigContentView; }
+        if (Build.VERSION.SDK_INT >= 16) {
+            view = n.bigContentView;
+        }
 
-        if (view == null)
-        {
+        if (view == null) {
             view = n.contentView;
         }
         ViewGroup localView = null;
-        try
-        {
+        try {
             LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             localView = (ViewGroup) inflater.inflate(view.getLayoutId(), null);
             view.reapply(context, localView);
-        } catch (Exception exp) { }
+        } catch (Exception exp) {
+        }
         return localView;
     }
 
@@ -229,19 +227,19 @@ public class NotificationUtils {
 
     public static Action getQuickReplyAction(Notification n, String packageName) {
         NotificationCompat.Action action = null;
-        if(Build.VERSION.SDK_INT >= 24)
+        if (Build.VERSION.SDK_INT >= 24)
             action = getQuickReplyAction(n);
-        if(action == null)
+        if (action == null)
             action = getWearReplyAction(n);
-        if(action == null)
+        if (action == null)
             return null;
         return new Action(action, packageName, true);
     }
 
     private static NotificationCompat.Action getQuickReplyAction(Notification n) {
-        for(int i = 0; i < NotificationCompat.getActionCount(n); i++) {
+        for (int i = 0; i < NotificationCompat.getActionCount(n); i++) {
             NotificationCompat.Action action = NotificationCompat.getAction(n, i);
-            if(action.getRemoteInputs() != null) {
+            if (action.getRemoteInputs() != null) {
                 for (int x = 0; x < action.getRemoteInputs().length; x++) {
                     RemoteInput remoteInput = action.getRemoteInputs()[x];
                     if (isKnownReplyKey(remoteInput.getResultKey()))
@@ -255,7 +253,7 @@ public class NotificationUtils {
     private static NotificationCompat.Action getWearReplyAction(Notification n) {
         NotificationCompat.WearableExtender wearableExtender = new NotificationCompat.WearableExtender(n);
         for (NotificationCompat.Action action : wearableExtender.getActions()) {
-            if(action.getRemoteInputs() != null) {
+            if (action.getRemoteInputs() != null) {
                 for (int x = 0; x < action.getRemoteInputs().length; x++) {
                     RemoteInput remoteInput = action.getRemoteInputs()[x];
                     if (isKnownReplyKey(remoteInput.getResultKey()))
@@ -269,163 +267,142 @@ public class NotificationUtils {
     }
 
     private static boolean isKnownReplyKey(String resultKey) {
-        if(TextUtils.isEmpty(resultKey))
+        if (TextUtils.isEmpty(resultKey))
             return false;
 
         resultKey = resultKey.toLowerCase();
-        for(String keyword : REPLY_KEYWORDS)
-            if(resultKey.contains(keyword))
+        for (String keyword : REPLY_KEYWORDS)
+            if (resultKey.contains(keyword))
                 return true;
 
         return false;
     }
 
     //OLD METHOD
-        public static String getExpandedText(ViewGroup localView)
-    {
-    	String text = "";
-        if (localView != null)
-        {
+    public static String getExpandedText(ViewGroup localView) {
+        String text = "";
+        if (localView != null) {
             Context context = localView.getContext();
-                View v;
-                // try to get big text
-                v = localView.findViewById(NotificationIds.getInstance(context).big_notification_content_text);
-                if (v != null && v instanceof TextView)
-                {
-                        String s = ((TextView)v).getText().toString();
-                        if (!s.equals(""))
-                        {
-                                // add title string if available
-                                View titleView = localView.findViewById(android.R.id.title);
-                                if (v != null && v instanceof TextView)
-                                {
-                                        String title = ((TextView)titleView).getText().toString();
-                                        if (!title.equals(""))
-                                                text = title + " " + s;
-                                        else
-                                                text = s;
-                                }
-                                else
-                                        text = s;
-                        }
+            View v;
+            // try to get big text
+            v = localView.findViewById(NotificationIds.getInstance(context).big_notification_content_text);
+            if (v != null && v instanceof TextView) {
+                String s = ((TextView) v).getText().toString();
+                if (!s.equals("")) {
+                    // add title string if available
+                    View titleView = localView.findViewById(android.R.id.title);
+                    if (v != null && v instanceof TextView) {
+                        String title = ((TextView) titleView).getText().toString();
+                        if (!title.equals(""))
+                            text = title + " " + s;
+                        else
+                            text = s;
+                    } else
+                        text = s;
+                }
+            }
+
+            // try to extract details lines
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_10_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    if (!s.equals(""))
+                        text += s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_9_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_8_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_7_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_6_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_5_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_4_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_3_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_2_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_1_id);
+            if (v != null && v instanceof TextView) {
+                CharSequence s = ((TextView) v).getText();
+                if (!s.equals(""))
+                    text += "\n" + s.toString();
+            }
+
+            if (text.equals("")) //Last resort for Kik
+            {
+                // get title string if available
+                View titleView = localView.findViewById(NotificationIds.getInstance(context).notification_title_id);
+                View bigTitleView = localView.findViewById(NotificationIds.getInstance(context).big_notification_title_id);
+                View inboxTitleView = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_title_id);
+                if (titleView != null && titleView instanceof TextView) {
+                    text += ((TextView) titleView).getText() + " - ";
+                } else if (bigTitleView != null && bigTitleView instanceof TextView) {
+                    text += ((TextView) titleView).getText();
+                } else if (inboxTitleView != null && inboxTitleView instanceof TextView) {
+                    text += ((TextView) titleView).getText();
                 }
 
-             // try to extract details lines
-    			v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_10_id);
-    			if (v != null && v instanceof TextView)
-    			{
-    				CharSequence s = ((TextView)v).getText();
-    				if (!s.equals(""))
-    					if (!s.equals(""))
-    						text += s.toString();
-    			}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_9_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_8_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_7_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_6_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_5_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_4_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_3_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_2_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				v = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_event_1_id);
-    				if (v != null && v instanceof TextView)
-    				{
-    					CharSequence s = ((TextView)v).getText();
-    					if (!s.equals(""))
-    						text += "\n" + s.toString();
-    				}
-
-    				if (text.equals("")) //Last resort for Kik
-                    {
-    					// get title string if available
-                        View titleView = localView.findViewById(NotificationIds.getInstance(context).notification_title_id );
-                        View bigTitleView = localView.findViewById(NotificationIds.getInstance(context).big_notification_title_id );
-                        View inboxTitleView = localView.findViewById(NotificationIds.getInstance(context).inbox_notification_title_id );
-                        if (titleView  != null && titleView  instanceof TextView)
-                        {
-                                text += ((TextView)titleView).getText() + " - ";
-                        } else if (bigTitleView != null && bigTitleView instanceof TextView)
-                        {
-                        	text += ((TextView)titleView).getText();
-                        } else if  (inboxTitleView != null && inboxTitleView instanceof TextView)
-                        {
-                        	text += ((TextView)titleView).getText();
-                        }
-
-                            v = localView.findViewById(NotificationIds.getInstance(context).notification_subtext_id);
-                            if (v != null && v instanceof TextView)
-                            {
-                                    CharSequence s = ((TextView)v).getText();
-                                    if (!s.equals(""))
-                                    {
-                                            text += s.toString();
-                                    }
-                            }
+                v = localView.findViewById(NotificationIds.getInstance(context).notification_subtext_id);
+                if (v != null && v instanceof TextView) {
+                    CharSequence s = ((TextView) v).getText();
+                    if (!s.equals("")) {
+                        text += s.toString();
                     }
+                }
+            }
 
         }
         return text.trim();
     }
 
     public static boolean isAPriorityMode(int interruptionFilter) {
-        if(interruptionFilter == NotificationListenerService.INTERRUPTION_FILTER_NONE ||
+        if (interruptionFilter == NotificationListenerService.INTERRUPTION_FILTER_NONE ||
                 interruptionFilter == NotificationListenerService.INTERRUPTION_FILTER_UNKNOWN)
             return false;
         return true;

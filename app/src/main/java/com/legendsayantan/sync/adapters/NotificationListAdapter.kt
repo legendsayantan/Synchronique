@@ -1,5 +1,6 @@
 package com.legendsayantan.sync.adapters
 
+import android.app.Dialog
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -36,9 +37,6 @@ class NotificationListAdapter(context: Context, data: ArrayList<NotificationData
 
         val replyImage = view.findViewById<ImageView>(R.id.replyImage)
         replyImage.visibility = if (item.canReply) View.VISIBLE else View.GONE
-        replyImage.setOnClickListener {
-            // Handle reply action
-        }
         return view
     }
 

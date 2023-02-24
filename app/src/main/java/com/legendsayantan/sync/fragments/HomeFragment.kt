@@ -149,21 +149,22 @@ class HomeFragment() : Fragment() {
     override fun onResume() {
         super.onResume()
         //bindings
-        values.onUpdate = {
+        values.onUpdate = onUpdate@{
             if (Values.appState == Values.Companion.AppState.IDLE) {
                 WaitForConnectionService.serverConfig = ServerConfig(values)
-                requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled = true
+                if(isAdded)requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled = true
                 println("serverConfig setup")
             } else if (Values.appState == Values.Companion.AppState.WAITING) {
 
             }
+            if(!isAdded)return@onUpdate
             requireView().findViewById<ImageView>(R.id.imageSync).animate().alpha(
                 if (WaitForConnectionService.serverConfig!!.clientConfig.media) 1F else 0.3F
             ).setDuration(250).start()
             requireView().findViewById<ImageView>(R.id.imageAudio).animate().alpha(
                 if (WaitForConnectionService.serverConfig!!.clientConfig.audio) 1F else 0.3F
             ).setDuration(250).start()
-            requireView().findViewById<ImageView>(R.id.imageShutter).animate().alpha(
+            requireView().findViewById<ImageView>(R.id.imageTrigger).animate().alpha(
                 if (WaitForConnectionService.serverConfig!!.clientConfig.trigger) 1F else 0.3F
             ).setDuration(250).start()
             requireView().findViewById<ImageView>(R.id.imageNoti).animate().alpha(
@@ -199,7 +200,7 @@ class HomeFragment() : Fragment() {
         values.bind(requireView().findViewById(R.id.media), "mediasync")
         values.bind(requireView().findViewById(R.id.media_client_only), "mediaclientonly")
         values.bind(requireView().findViewById(R.id.audio), "audiostream")
-        values.bind(requireView().findViewById(R.id.trigger), "camerashutter")
+        values.bind(requireView().findViewById(R.id.trigger), "trigger")
         values.bind(requireView().findViewById(R.id.noti), "notishare")
         values.bind(requireView().findViewById(R.id.noti_reply), "notireply")
         values.bind(
@@ -230,6 +231,7 @@ class HomeFragment() : Fragment() {
         val cardList = ArrayList<MaterialCardView>()
         cardList.add(requireView().findViewById(R.id.mediaCard))
         cardList.add(requireView().findViewById(R.id.audioCard))
+        cardList.add(requireView().findViewById(R.id.triggerCard))
         cardList.add(requireView().findViewById(R.id.notiCard))
         CardAnimator.initToggleableCards(cardList)
 
@@ -418,7 +420,7 @@ class HomeFragment() : Fragment() {
     private fun startToAdvertise() = if (Values(requireContext()).syncParams) {
         Values.appState = Values.Companion.AppState.PERMS
         WaitForConnectionService.serverConfig = ServerConfig(values)
-        PermissionManager(requireActivity()).ask(WaitForConnectionService.serverConfig!!) {
+        PermissionManager().ask(requireActivity(),WaitForConnectionService.serverConfig!!) {
             Timer().scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
                     if (isAdded) {
@@ -482,9 +484,9 @@ class HomeFragment() : Fragment() {
             .scaleY(1.25f).setDuration(250).setStartDelay(300).start()
         requireView().findViewById<MaterialCardView>(R.id.audioCard).animate().scaleX(1.05f)
             .scaleY(1.05f).setDuration(250).setStartDelay(300).start()
-        requireView().findViewById<ImageView>(R.id.imageShutter).animate().alpha(1F).scaleX(1.25f)
+        requireView().findViewById<ImageView>(R.id.imageTrigger).animate().alpha(1F).scaleX(1.25f)
             .scaleY(1.25f).setDuration(250).setStartDelay(450).start()
-        requireView().findViewById<MaterialCardView>(R.id.cameraCard).animate().scaleX(1.05f)
+        requireView().findViewById<MaterialCardView>(R.id.triggerCard).animate().scaleX(1.05f)
             .scaleY(1.05f).setDuration(250).setStartDelay(450).start()
         requireView().findViewById<ImageView>(R.id.imageNoti).animate().alpha(1F).scaleX(1.25f)
             .scaleY(1.25f).setDuration(250).setStartDelay(600).start()
@@ -502,9 +504,9 @@ class HomeFragment() : Fragment() {
                         .scaleX(1f).scaleY(1f).setDuration(250).setStartDelay(300).start()
                     requireView().findViewById<MaterialCardView>(R.id.audioCard).animate()
                         .scaleX(1f).scaleY(1f).setDuration(250).setStartDelay(300).start()
-                    requireView().findViewById<ImageView>(R.id.imageShutter).animate().alpha(0.3F)
+                    requireView().findViewById<ImageView>(R.id.imageTrigger).animate().alpha(0.3F)
                         .scaleX(1f).scaleY(1f).setDuration(250).setStartDelay(450).start()
-                    requireView().findViewById<MaterialCardView>(R.id.cameraCard).animate()
+                    requireView().findViewById<MaterialCardView>(R.id.triggerCard).animate()
                         .scaleX(1f).scaleY(1f).setDuration(250).setStartDelay(450).start()
                     requireView().findViewById<ImageView>(R.id.imageNoti).animate().alpha(0.3F)
                         .scaleX(1f).scaleY(1f).setDuration(250).setStartDelay(600).start()

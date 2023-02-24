@@ -10,7 +10,7 @@
         Nearby :\n
         Nearby is a feature that allows other users that are nearby to find you and connect to you.\n
         Multi-Connection Nearby :\n
-        Multi-connection Nearby will allow multiple nearby users to connect to you, but result in a slower connection speed.\n
+        Multi-connection Nearby will allow multiple nearby clients to connect to you, but might cause buffering.\n
     </string>
     <string name="socket_info">
         Socket :\n

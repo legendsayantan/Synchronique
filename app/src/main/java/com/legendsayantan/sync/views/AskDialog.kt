@@ -1,12 +1,9 @@
 package com.legendsayantan.sync.views
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
-import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.view.View
-import android.view.ViewManager
 import android.view.Window
 import android.widget.TextView
 import com.google.android.material.card.MaterialCardView
@@ -18,7 +15,7 @@ import com.legendsayantan.sync.R
 class AskDialog(var activity: Activity,var string: String, var onYes :() -> Unit = {}, var onNo:() -> Unit = {},var showBtns:Boolean = true) {
     private val d = Dialog(activity)
     init{
-        val view = activity.layoutInflater.inflate(R.layout.ask_popup, null);
+        val view = activity.layoutInflater.inflate(R.layout.popup_ask, null);
         view.findViewById<TextView>(R.id.textView).text = string
         if(!showBtns) view.findViewById<View>(R.id.btns).visibility = View.GONE
         view.findViewById<MaterialCardView>(R.id.yesBtn).setOnClickListener {

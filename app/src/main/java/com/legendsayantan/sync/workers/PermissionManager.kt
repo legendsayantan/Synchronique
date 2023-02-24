@@ -1,6 +1,7 @@
 package com.legendsayantan.sync.workers
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
@@ -15,8 +16,8 @@ import java.util.*
 /**
  * @author legendsayantan
  */
-class PermissionManager(var activity: Activity) {
-    fun ask(serverConfig: ServerConfig,callback : () -> Unit){
+class PermissionManager() {
+    fun ask(activity: Activity,serverConfig: ServerConfig,callback : () -> Unit){
         if(serverConfig.clientConfig.media){
             if (!serverConfig.mediaClientOnly){
                 //ask notification listener permission
@@ -35,7 +36,7 @@ class PermissionManager(var activity: Activity) {
                                     .contains(activity.packageName)
                             ) {
                                 cancel()
-                                ask(serverConfig,callback)
+                                ask(activity,serverConfig,callback)
                             }
                         }
                     },2000, 1000)
@@ -60,7 +61,7 @@ class PermissionManager(var activity: Activity) {
                             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                         ) {
                             cancel()
-                            ask(serverConfig, callback)
+                            ask(activity,serverConfig, callback)
                         }
                     }
                 }, 2000, 1000)
@@ -93,7 +94,7 @@ class PermissionManager(var activity: Activity) {
                                 .contains(activity.packageName)
                         ) {
                             cancel()
-                            ask(serverConfig,callback)
+                            ask(activity,serverConfig,callback)
                         }
                     }
                 },2000, 1000)
@@ -102,25 +103,25 @@ class PermissionManager(var activity: Activity) {
         }
         callback()
     }
-    fun ask(clientConfig: ClientConfig, callback : () -> Unit){
+    fun ask(context: Context,clientConfig: ClientConfig, callback : () -> Unit){
         if(clientConfig.media){
             //ask notification listener permission
-            if (!NotificationManagerCompat.getEnabledListenerPackages(activity)
-                    .contains(activity.packageName)
+            if (!NotificationManagerCompat.getEnabledListenerPackages(context)
+                    .contains(context.packageName)
             ) {
-                activity.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                 Toast.makeText(
-                    activity,
-                    "Please enable notification access for ${activity.getString(R.string.app_name)}",
+                    context,
+                    "Please enable notification access for ${context.getString(R.string.app_name)}",
                     Toast.LENGTH_SHORT
                 ).show()
                 Timer().scheduleAtFixedRate(object : TimerTask() {
                     override fun run() {
-                        if (NotificationManagerCompat.getEnabledListenerPackages(activity)
-                                .contains(activity.packageName)
+                        if (NotificationManagerCompat.getEnabledListenerPackages(context)
+                                .contains(context.packageName)
                         ) {
                             cancel()
-                            ask(clientConfig,callback)
+                            ask(context,clientConfig,callback)
                         }
                     }
                 },2000, 1000)

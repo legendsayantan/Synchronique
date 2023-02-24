@@ -13,6 +13,7 @@ import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.EndpointInfo
+import com.legendsayantan.sync.models.NotificationReply
 import com.legendsayantan.sync.models.PayloadPacket
 import com.legendsayantan.sync.models.ServerConfig
 import com.legendsayantan.sync.workers.*
@@ -65,12 +66,20 @@ class ServerService : Service() {
                     if (p1.type == Payload.Type.BYTES && p1.asBytes() != null) {
                         println("--------------- PAYLOAD -----------------")
                         println(String(p1.asBytes()!!))
-                        Toast.makeText(applicationContext, "payload", Toast.LENGTH_SHORT).show()
-                        if (PayloadPacket.fromEncBytes(p1.asBytes()!!).payloadType == PayloadPacket.Companion.PayloadType.DISCONNECT) {
-                            Nearby.getConnectionsClient(applicationContext)
-                                .disconnectFromEndpoint(endpointInfo.id)
-                            Values.appState = Values.Companion.AppState.IDLE
-                            stopSelf()
+                        val payloadPacket=PayloadPacket.fromEncBytes(p1.asBytes()!!)
+                        Toast.makeText(applicationContext, "payload - ${payloadPacket.payloadType}", Toast.LENGTH_SHORT).show()
+                        when (payloadPacket.payloadType) {
+                            PayloadPacket.Companion.PayloadType.DISCONNECT -> {
+                                Nearby.getConnectionsClient(applicationContext)
+                                    .disconnectFromEndpoint(endpointInfo.id)
+                                Values.appState = Values.Companion.AppState.IDLE
+                                stopSelf()
+                            }
+                            PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> {}
+                            PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY -> {
+                                NotificationListener.sendReplyTo(payloadPacket.data as NotificationReply,applicationContext)
+                            }
+                            else -> {}
                         }
                     }
                 }
@@ -142,6 +151,8 @@ class ServerService : Service() {
 
     override fun onDestroy() {
         network.disconnect()
+        stopService(Intent(applicationContext, WaitForConnectionService::class.java))
+        stopService(Intent(applicationContext, NotificationListener::class.java))
         Values.appState = Values.Companion.AppState.IDLE
         super.onDestroy()
     }

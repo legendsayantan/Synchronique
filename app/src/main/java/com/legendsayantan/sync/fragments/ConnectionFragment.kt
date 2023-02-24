@@ -2,7 +2,6 @@ package com.legendsayantan.sync.fragments
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.database.DataSetObserver
 import android.os.Bundle
 import android.transition.TransitionManager
 import androidx.fragment.app.Fragment
@@ -20,11 +19,10 @@ import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.adapters.NotificationListAdapter
 import com.legendsayantan.sync.models.NotificationData
-import com.legendsayantan.sync.services.LookupService
-import com.legendsayantan.sync.services.ClientService
-import com.legendsayantan.sync.services.ServerService
-import com.legendsayantan.sync.services.WaitForConnectionService
+import com.legendsayantan.sync.models.NotificationReply
+import com.legendsayantan.sync.services.*
 import com.legendsayantan.sync.views.AskDialog
+import com.legendsayantan.sync.views.ChatDialog
 import com.legendsayantan.sync.views.ConnectionDialog
 import com.legendsayantan.sync.workers.CardAnimator
 import com.legendsayantan.sync.workers.Network
@@ -49,6 +47,8 @@ class ConnectionFragment : Fragment() {
     private lateinit var accessCard: View
     private lateinit var connectionCard: View
     lateinit var network: Network
+    private var replyDialog: ChatDialog? = null
+
     var noticount = 0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,7 +95,10 @@ class ConnectionFragment : Fragment() {
         connectionCard = requireView().findViewById(R.id.connectCard)
         singleLookupButton = requireView().findViewById(R.id.singleCard)
         multiLookupButton = requireView().findViewById(R.id.multiCard)
-        ClientService.connectionConfigured = ::initAccessCard
+        ClientService.connectionConfigured = {
+            TransitionManager.beginDelayedTransition(requireView() as ViewGroup)
+            initAccessCard()
+        }
 
         singleLookupButton.setOnClickListener {
             if (singleLookupButton.findViewById<LinearLayout>(R.id.btn1).visibility != View.VISIBLE) {
@@ -213,32 +216,46 @@ class ConnectionFragment : Fragment() {
         Values.onAppStateChanged = {
             when (Values.appState) {
                 Values.Companion.AppState.ACCESSING -> {
+                    TransitionManager.beginDelayedTransition(requireView() as ViewGroup)
                     singleLookupButton.visibility = View.GONE
                     multiLookupButton.visibility = View.GONE
                     accessCard.visibility = View.VISIBLE
                     connectionCard.visibility = View.GONE
-                    try{
+                    try {
                         initAccessCard()
-                    }catch (_:Exception){}
+                    } catch (_: Exception) {
+                    }
                 }
                 Values.Companion.AppState.LOOKING -> {
                     accessCard.visibility = View.GONE
-                    if(LookupService.lookupStrategy== Strategy.P2P_POINT_TO_POINT){
-                        singleLookupButton.visibility =View.VISIBLE
+                    if (LookupService.lookupStrategy == Strategy.P2P_POINT_TO_POINT) {
+                        singleLookupButton.visibility = View.VISIBLE
                         multiLookupButton.visibility = View.GONE
-                        singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =View.VISIBLE
-                        singleLookupButton.findViewById<LinearLayout>(R.id.btn1).visibility = View.GONE
-                        setStatusText(requireView().findViewById(R.id.discoverType),"Single-connection",true)
-                    }else{
-                        multiLookupButton.visibility =View.VISIBLE
+                        singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =
+                            View.VISIBLE
+                        singleLookupButton.findViewById<LinearLayout>(R.id.btn1).visibility =
+                            View.GONE
+                        setStatusText(
+                            requireView().findViewById(R.id.discoverType),
+                            "Single-connection",
+                            true
+                        )
+                    } else {
+                        multiLookupButton.visibility = View.VISIBLE
                         singleLookupButton.visibility = View.GONE
-                        multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =View.VISIBLE
-                        multiLookupButton.findViewById<LinearLayout>(R.id.btn2).visibility = View.GONE
-                        setStatusText(requireView().findViewById(R.id.discoverType),"Multi-connection",true)
+                        multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =
+                            View.VISIBLE
+                        multiLookupButton.findViewById<LinearLayout>(R.id.btn2).visibility =
+                            View.GONE
+                        setStatusText(
+                            requireView().findViewById(R.id.discoverType),
+                            "Multi-connection",
+                            true
+                        )
                     }
                 }
                 else -> {
-                    singleLookupButton.visibility =View.VISIBLE
+                    singleLookupButton.visibility = View.VISIBLE
                     multiLookupButton.visibility = View.VISIBLE
                     accessCard.visibility = View.GONE
                     singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =
@@ -250,7 +267,7 @@ class ConnectionFragment : Fragment() {
                     multiLookupButton.findViewById<LinearLayout>(R.id.btn2).visibility =
                         View.VISIBLE
                     connectionCard.visibility = View.VISIBLE
-                    setStatusText(requireView().findViewById(R.id.discoverType),"",false)
+                    setStatusText(requireView().findViewById(R.id.discoverType), "", false)
                 }
             }
         }
@@ -303,7 +320,7 @@ class ConnectionFragment : Fragment() {
                     }
                     ClientService.serverEndpoint = endpoint
                     val intent = Intent(requireContext(), ClientService::class.java)
-                    requireActivity().startForegroundService(intent)
+                    requireContext().startForegroundService(intent)
                 }) {}.show()
         }
     }
@@ -312,10 +329,10 @@ class ConnectionFragment : Fragment() {
         val name = requireView().findViewById<TextView>(R.id.name)
         val hash = requireView().findViewById<TextView>(R.id.hash)
         val disconnectBtn = requireView().findViewById<MaterialCardView>(R.id.disconnectBtn)
-        val media_access = requireView().findViewById<View>(R.id.media_access)
-        val audio_access = requireView().findViewById<View>(R.id.audio_access)
-        val trigger_access = requireView().findViewById<View>(R.id.trigger_access)
-        val noti_access = requireView().findViewById<View>(R.id.noti_access)
+        val mediaAccess = requireView().findViewById<View>(R.id.media_access)
+        val audioAccess = requireView().findViewById<View>(R.id.audio_access)
+        val triggerAccess = requireView().findViewById<View>(R.id.trigger_access)
+        val notiAccess = requireView().findViewById<View>(R.id.noti_access)
         name.text = Values.connectedServer?.name
         hash.text = Values.connectedServer?.uidHash.also {
             it?.substring(0, it.length / 3) + " " + it?.substring(
@@ -331,24 +348,37 @@ class ConnectionFragment : Fragment() {
                     Values.appState = Values.Companion.AppState.IDLE
                 })
         }
-        media_access.visibility = if (ClientService.clientConfig.media) View.VISIBLE else View.GONE
-        audio_access.visibility = if (ClientService.clientConfig.audio) View.VISIBLE else View.GONE
-        trigger_access.visibility =
+        mediaAccess.visibility = if (ClientService.clientConfig.media) View.VISIBLE else View.GONE
+        audioAccess.visibility = if (ClientService.clientConfig.audio) View.VISIBLE else View.GONE
+        triggerAccess.visibility =
             if (ClientService.clientConfig.trigger) View.VISIBLE else View.GONE
-        noti_access.visibility = if (ClientService.clientConfig.noti) View.VISIBLE else View.GONE
+        notiAccess.visibility = if (ClientService.clientConfig.noti) View.VISIBLE else View.GONE
         val cardList = java.util.ArrayList<MaterialCardView>()
-        cardList.add(trigger_access as MaterialCardView)
-        cardList.add(noti_access as MaterialCardView)
+        cardList.add(triggerAccess as MaterialCardView)
+        cardList.add(notiAccess as MaterialCardView)
         CardAnimator.initExpandableCards(cardList)
         //notification list
         val notiList = requireView().findViewById<ListView>(R.id.noti_list)
-        notiList.adapter = NotificationListAdapter(requireContext(),ClientService.notificationDataList)
-        ClientService.onNotificationData ={
-            if(isAdded){
+        notiList.adapter =
+            NotificationListAdapter(requireContext(), ClientService.notificationDataList)
+        ClientService.onNotificationUpdated = { notificationData: NotificationData, i: Int ->
+            if (isAdded) {
                 val firstVisibleItem = notiList.firstVisiblePosition
                 val topOffset = notiList.getChildAt(0)?.top ?: 0
-                notiList.adapter = NotificationListAdapter(requireContext(),ClientService.notificationDataList)
+                notiList.adapter =
+                    NotificationListAdapter(requireContext(), ClientService.notificationDataList)
                 notiList.setSelectionFromTop(firstVisibleItem, topOffset)
+            }
+            if (replyDialog != null) {
+                replyDialog?.newData(notificationData)
+            }
+        }
+        notiList.setOnItemClickListener { parent, view, position, id ->
+            if (!ClientService.notificationDataList[position].canReply) return@setOnItemClickListener
+            replyDialog =
+                ChatDialog(requireActivity(), ClientService.notificationDataList, position)
+            replyDialog?.replyListener = { reply: String, key: String ->
+                network.push(NotificationReply(reply, key))
             }
         }
     }
@@ -360,10 +390,13 @@ class ConnectionFragment : Fragment() {
     }
 
     private fun setStatusText(textView: TextView, string: String?, fromTop: Boolean = true) {
-        if (string==null) return
-        textView.animate().alpha(0f)
-            .translationY((if (fromTop) 1f else -1f) * textView.height.toFloat()).setDuration(250)
-            .start()
+        if (string == null) return
+        requireActivity().runOnUiThread {
+            textView.animate().alpha(0f)
+                .translationY((if (fromTop) 1f else -1f) * textView.height.toFloat())
+                .setDuration(250)
+                .start()
+        }
         Timer().schedule(object : TimerTask() {
             override fun run() {
                 requireActivity().runOnUiThread {

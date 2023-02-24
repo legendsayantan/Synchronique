@@ -36,6 +36,7 @@ class NotificationListener : NotificationListenerService() {
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
         println("NotificationListener disconnected")
+        stopSelf()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -72,6 +73,7 @@ class NotificationListener : NotificationListenerService() {
         var allowReply: Boolean = false
         private val actions = ArrayList<ActionStore>()
         fun sendReplyTo(notificationReply: NotificationReply,applicationContext: Context) {
+            println(actions.toArray())
             actions.find { it.key == notificationReply.key }?.action?.sendReply(applicationContext, notificationReply.reply)
         }
     }
