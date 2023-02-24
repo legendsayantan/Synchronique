@@ -13,6 +13,8 @@ import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.*
 import com.legendsayantan.sync.workers.*
+import java.util.*
+import kotlin.collections.ArrayList
 
 class ClientService : Service() {
 
@@ -23,8 +25,8 @@ class ClientService : Service() {
     lateinit var transferThread: Thread
     lateinit var values: Values
 
-    lateinit var mediaWorker: MediaWorker
-    lateinit var audioWorker: AudioWorker
+    private var mediaWorker: MediaWorker? = null
+    var audioWorker: AudioWorker? =null
 
     lateinit var startStreamReceivers: () -> Unit
 
@@ -85,14 +87,15 @@ class ClientService : Service() {
                                     } else if (p1.type == Payload.Type.STREAM) {
                                         startStreamReceivers = {
                                             if (clientConfig.audio) {
-                                                audioWorker.playAudioFromPayload(p1)
+                                                audioWorker!!.playAudioFromPayload(p1)
                                             }
                                             startStreamReceivers = {}
                                         }
                                         //try to start now
                                         try {
                                             startStreamReceivers()
-                                        }catch (_: java.lang.Exception){}
+                                        } catch (_: java.lang.Exception) {
+                                        }
                                     }
                                 }
 
@@ -108,7 +111,7 @@ class ClientService : Service() {
                     override fun onConnectionResult(p0: String, p1: ConnectionResolution) {
                         when (p1.status.statusCode) {
                             ConnectionsStatusCodes.STATUS_OK -> {
-                                stopService(Intent(applicationContext,LookupService::class.java))
+                                stopService(Intent(applicationContext, LookupService::class.java))
                                 builder = Notification.Builder(
                                     applicationContext,
                                     Notifications(applicationContext).connection_channel
@@ -119,6 +122,7 @@ class ClientService : Service() {
                                 notificationManager.notify(noticount, builder.build())
                                 noticount++
                                 Values.connectedServer = serverEndpoint
+                                Values.appState = Values.Companion.AppState.ACCESSING
                                 // actual connection starts
 
                             }
@@ -154,11 +158,10 @@ class ClientService : Service() {
                     override fun onDisconnected(p0: String) {
                         builder = Notification.Builder(
                             applicationContext,
-                            "${applicationContext.packageName}.request"
+                            Notifications(applicationContext).connection_channel
                         )
                             .setSmallIcon(R.drawable.ic_launcher_foreground)
                             .setContentTitle("Device Disconnected")
-                            .setOngoing(false)
                             .setContentText("${serverEndpoint.name} was disconnected.")
                         notificationManager.notify(noticount, builder.build())
                         noticount++
@@ -172,33 +175,26 @@ class ClientService : Service() {
     }
 
     private fun prepareWorkers(clientConfig: ClientConfig) {
-        MainActivity.instance?.runOnUiThread {
-            Values.appState = Values.Companion.AppState.PERMS
-            PermissionManager(MainActivity.instance!!).ask(clientConfig) {
-                if (clientConfig.media) {
-                    mediaWorker = MediaWorker(this)
-                }
-                if (clientConfig.audio) {
-                    audioWorker = AudioWorker(this, null, clientConfig.audioSample)
-                }
-                if(clientConfig.trigger){
+        PermissionManager().ask(applicationContext,clientConfig) {
+            if (clientConfig.media) {
+                mediaWorker = MediaWorker(this)
+            }
+            if (clientConfig.audio) {
+                audioWorker = AudioWorker(this, null, clientConfig.audioSample)
+            }
+            if (clientConfig.trigger) {
 
-                }
-                if(clientConfig.noti){
-                    notificationDataList = object : ArrayList<NotificationData>(){
-                        override fun add(element: NotificationData): Boolean {
-                            val x = super.add(element)
-                            onNotificationData()
-                            return x
-                        }
-                    }
-                }
-                Values.appState = Values.Companion.AppState.ACCESSING
-                try {
-                    startStreamReceivers()
-                }catch (_:Exception){}
+            }
+            if (clientConfig.noti) {
+                notificationDataList = ArrayList()
+            }
+            Values.appState = Values.Companion.AppState.ACCESSING
+            try {
+                startStreamReceivers()
+            } catch (_: Exception) {
             }
         }
+        connectionConfigured()
     }
 
     fun processIncomingPayload(payload: Payload, endpointInfo: EndpointInfo) {
@@ -215,26 +211,27 @@ class ClientService : Service() {
             PayloadPacket.Companion.PayloadType.CONFIG_PACKET -> {
                 clientConfig = payloadPacket.data as ClientConfig
                 prepareWorkers(clientConfig)
-                connectionConfigured()
             }
             PayloadPacket.Companion.PayloadType.MEDIA_SYNC_PACKET -> {
-                mediaWorker.recvMediaSync(payloadPacket.data as MediaSyncPacket)
+                if (mediaWorker==null) return
+                mediaWorker!!.recvMediaSync(payloadPacket.data as MediaSyncPacket)
             }
             PayloadPacket.Companion.PayloadType.MEDIA_ACTION_PACKET -> {
-                mediaWorker.recvMediaAction(payloadPacket.data as MediaActionPacket)
+                if (mediaWorker==null) return
+                mediaWorker!!.recvMediaAction(payloadPacket.data as MediaActionPacket)
             }
-            PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> {}
             PayloadPacket.Companion.PayloadType.NOTIFICATION_PACKET -> {
                 val nData = payloadPacket.data as NotificationData
-                val search = notificationDataList.find { it.key==nData.key }
-                if(search==null){
+                val search = notificationDataList.find { it.key == nData.key }
+                var index = notificationDataList.indexOf(search)
+                if (search == null || index < 0 || notificationDataList[index].canReply) {
                     notificationDataList.add(nData)
-                }else{
-                    notificationDataList[notificationDataList.indexOf(search)] = nData
-                    onNotificationData()
+                    index = notificationDataList.size - 1
+                } else {
+                    notificationDataList[index] = nData
                 }
+                onNotificationUpdated(notificationDataList[index], index)
             }
-            PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY -> {}
             else -> {}
         }
     }
@@ -245,9 +242,9 @@ class ClientService : Service() {
         var connectionInitiated: () -> Unit = {}
         var connectionConfigured: () -> Unit = {}
         lateinit var clientConfig: ClientConfig
-        lateinit var serverEndpoint: EndpointInfo
+        var serverEndpoint = EndpointInfo("", "", "")
 
-        lateinit var notificationDataList: ArrayList<NotificationData>
-        var onNotificationData: () -> Unit = {}
+        var notificationDataList = ArrayList<NotificationData>()
+        var onNotificationUpdated: (NotificationData, Int) -> Unit = { _, _ -> }
     }
 }

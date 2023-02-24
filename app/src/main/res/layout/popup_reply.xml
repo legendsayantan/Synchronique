@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="?attr/backgroundColor"
+    app:cardCornerRadius="25dp"
+    app:strokeColor="?attr/colorPrimary"
+    app:strokeWidth="3dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:textColor="?attr/colorPrimary"
+                android:text="Reply to : " />
+
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textColor="?attr/colorPrimary"
+                android:textStyle="bold"
+                android:text="" />
+
+        </LinearLayout>
+        <com.legendsayantan.sync.views.chatview.ChatView
+            android:id="@+id/chatView"
+            app:chatViewBackgroundColor="?attr/backgroundColor"
+            app:showSenderLayout="false"
+            app:chatInputBackgroundColor="@color/accent1_100"
+            app:textColor="@color/accent1_400"
+            app:showAddButton="false"
+            android:layout_marginHorizontal="10dp"
+            app:hintTextColor="@color/accent1_100"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"/>
+
+
+
+        <com.google.android.material.card.MaterialCardView
+            app:cardBackgroundColor="?attr/backgroundColor"
+            app:cardCornerRadius="20dp"
+            app:strokeColor="?attr/colorPrimary"
+            app:strokeWidth="3dp"
+            android:layout_margin="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="5dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+                <EditText
+                    android:id="@+id/text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ems="15"
+                    android:layout_weight="1"
+                    android:textSize="18sp"
+                    android:layout_marginStart="10dp"
+                    android:backgroundTint="@color/transparent"
+                    android:inputType="textPersonName"
+                    android:hint="Write a message"
+                    android:textColor="?attr/colorPrimary"/>
+
+                <ImageView
+                    android:id="@+id/sendBtn"
+                    android:layout_width="45dp"
+                    android:layout_height="45dp"
+                    android:scaleX="0.75"
+                    android:scaleY="0.75"
+                    app:srcCompat="@drawable/ic_baseline_send_24" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

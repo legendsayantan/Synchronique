@@ -12,7 +12,7 @@ import com.legendsayantan.sync.R
  * @author legendsayantan
  */
 class ConnectionDialog(
-    private var activity: Activity,
+    var activity: Activity,
     var header:String,
     var name:String,
     var hash:String,
@@ -21,7 +21,7 @@ class ConnectionDialog(
     var onDismiss: () -> Unit = {}) {
     val d = Dialog(activity)
     fun show(){
-        var view = activity.layoutInflater.inflate(R.layout.device_link_popup, null);
+        var view = activity.layoutInflater.inflate(R.layout.popup_device_link, null);
         view.findViewById<TextView>(R.id.name).text = name
         view.findViewById<TextView>(R.id.hash).text =
             hash.substring(0, hash.length / 3) + " " + hash.substring(
@@ -32,6 +32,7 @@ class ConnectionDialog(
         view.findViewById<TextView>(R.id.btnText).text = btn
         view.findViewById<MaterialCardView>(R.id.linkBtn).setOnClickListener {
             onAction(this)
+            it.setOnClickListener {  }
         }
         d.window?.setBackgroundDrawable(ColorDrawable(activity.resources.getColor(R.color.transparent)))
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);

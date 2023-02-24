@@ -478,7 +478,7 @@
 
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="300dp"
+                            android:layout_height="360dp"
                             android:orientation="vertical">
 
                             <TextView
@@ -491,6 +491,7 @@
                             <ListView
                                 android:id="@+id/noti_list"
                                 android:clipChildren="false"
+                                android:nestedScrollingEnabled="true"
                                 android:layout_marginHorizontal="15dp"
                                 android:layout_marginBottom="15dp"
                                 android:layout_width="match_parent"

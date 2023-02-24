@@ -120,7 +120,7 @@ public abstract class BaseNotificationListener extends NotificationListenerServi
         if(!duplicateReplyPackages.contains(sbn.getPackageName()))
             return false;
         int hashCode = getHashCode(sbn);
-        return notifHandled.indexOf(hashCode) > -1 || previouslyDismissed.containsValue(hashCode);
+        return notifHandled.contains(hashCode) || previouslyDismissed.containsValue(hashCode);
     }
 
     @Override

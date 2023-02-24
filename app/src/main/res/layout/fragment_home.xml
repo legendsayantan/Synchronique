@@ -216,7 +216,7 @@
                             android:layout_height="wrap_content"
                             android:src="@drawable/baseline_notifications_24" />
                         <ImageView
-                            android:id="@+id/imageShutter"
+                            android:id="@+id/imageTrigger"
                             android:layout_marginHorizontal="5dp"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -427,7 +427,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cameraCard"
+                android:id="@+id/triggerCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="25dp"
@@ -470,6 +470,23 @@
                     </LinearLayout>
 
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/textView3"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:textSize="15sp"
+                            android:text="Trigger count" />
+                        <include layout="@layout/layout_counter" />
+
+                    </LinearLayout>
 
 
 

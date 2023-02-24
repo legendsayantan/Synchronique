@@ -23,8 +23,8 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
                     PayloadType.TRIGGER_PACKET -> TriggerPacket::class.java
                     PayloadType.NOTIFICATION_PACKET -> NotificationData::class.java
                     PayloadType.NOTIFICATION_REPLY -> NotificationReply::class.java
-                    PayloadType.DISCONNECT -> TODO()
-                    PayloadType.UNKNOWN -> TODO()
+                    PayloadType.DISCONNECT -> ByteArray::class.java
+                    PayloadType.UNKNOWN -> ByteArray::class.java
                 }
             )
             return packet
