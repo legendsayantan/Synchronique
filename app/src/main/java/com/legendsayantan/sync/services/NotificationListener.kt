@@ -41,9 +41,6 @@ class NotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-        if (sbn != null) {
-            println("notification postTime:${sbn.postTime}")
-        }
         if(sbn==null||sentNotifications.contains(sbn.postTime))return@onNotificationPosted
         if (Values.appState == Values.Companion.AppState.CONNECTED && shareNoti) {
             NotificationData(sbn, allowReply).let { notificationData ->

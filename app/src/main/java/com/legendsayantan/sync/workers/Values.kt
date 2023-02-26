@@ -7,14 +7,18 @@ import android.widget.CompoundButton
 import android.widget.RadioButton
 import android.widget.SeekBar
 import com.google.android.gms.nearby.connection.Strategy
+import com.google.firebase.firestore.CollectionReference
+import com.google.firebase.firestore.FirebaseFirestore
 import com.legendsayantan.sync.models.EndpointInfo
+import com.legendsayantan.sync.models.SocketEndpointInfo
 
 /**
  * @author legendsayantan
  */
 class Values(context: Context) {
     val prefs = context.getSharedPreferences("default", Context.MODE_PRIVATE)
-    var onUpdate = {}
+    var onServerValueUpdate = {}
+    var onClientValueUpdate = {}
     val syncParams = mediaSync || audioStream || triggerButtons || notiShare
     fun set(key: String, value: Boolean) {
         prefs.edit().putBoolean(key, value).apply()
@@ -28,34 +32,34 @@ class Values(context: Context) {
         prefs.edit().putString(key, value).apply()
     }
 
-    fun bind(switch: CompoundButton, key: String,default: Boolean = false, onChange: () -> Unit = {}){
+    fun bind(switch: CompoundButton, key: String,default: Boolean = false,serverValue:Boolean=true,onChange: () -> Unit = {}){
         switch.isChecked = prefs.getBoolean(key, default)
         switch.setOnCheckedChangeListener { _, isChecked ->
             set(key, isChecked)
-            onUpdate()
+            if(serverValue)onServerValueUpdate() else onClientValueUpdate()
             onChange()
         }
         onChange()
     }
 
-    fun bind(radioButton1: RadioButton, radioButton2: RadioButton, key: String,default: Boolean) {
+    fun bind(radioButton1: RadioButton, radioButton2: RadioButton, key: String,default: Boolean,serverValue:Boolean=true) {
         radioButton1.isChecked = prefs.getBoolean(key, default)
         radioButton2.isChecked = !prefs.getBoolean(key, default)
         radioButton1.setOnCheckedChangeListener { _, isChecked ->
             set(key, isChecked)
-            onUpdate()
+            if(serverValue)onServerValueUpdate() else onClientValueUpdate()
         }
         radioButton2.setOnCheckedChangeListener { _, isChecked ->
             set(key, !isChecked)
-            onUpdate()
+            if(serverValue)onServerValueUpdate() else onClientValueUpdate()
         }
     }
 
-    fun bind(seekBar: SeekBar, key: String, def: Int, listener: (Int) -> Unit) {
-        seekBar.progress = prefs.getInt(key, def)/1000
+    fun bind(seekBar: SeekBar, key: String, def: Int,serverValue:Boolean=true,multiplier:Int=1, listener: (Int) -> Unit) {
+        seekBar.progress = prefs.getInt(key, def)/multiplier
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                set(key, progress * 1000)
+                set(key, progress * multiplier)
                 listener(progress)
             }
 
@@ -63,27 +67,28 @@ class Values(context: Context) {
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                onUpdate()
+                if(serverValue)onServerValueUpdate() else onClientValueUpdate()
             }
         })
     }
+    //server values
     var nearby
         get() = prefs.getBoolean("nearby", true)
         set(value) {
             set("nearby", value)
+            onServerValueUpdate()
         }
     var socket
         get() = prefs.getBoolean("socket", false)
         set(value) {
             set("socket", value)
+            onServerValueUpdate()
         }
-
     var multiDevice
         get() = prefs.getBoolean("multidevice", false)
         set(value) {
             set("multidevice", value)
         }
-
     val networkStrategy
         get() = if (multiDevice) Strategy.P2P_STAR else Strategy.P2P_POINT_TO_POINT
 
@@ -134,11 +139,27 @@ class Values(context: Context) {
         set(value) {
             set("notireply", value)
         }
-
-
+    //client values
+    var allowMediaSync
+        get() = prefs.getBoolean("allowmediasync", false)
+        set(value) {
+            set("allowmediasync", value)
+        }
+    var audioVolume
+        get() = prefs.getInt("audiovolume", 100)
+        set(value) {
+            set("audiovolume", value)
+        }
+    var postNotifications
+        get() = prefs.getBoolean("postnotifications", false)
+        set(value) {
+            set("postnotifications", value)
+        }
 
     //connection channel
     val nearby_advertise = "${context.packageName}.connect"
+    //firestore
+    val firestore = FirebaseFirestore.getInstance().collection("users")
 
     companion object {
         //constants
@@ -155,31 +176,56 @@ class Values(context: Context) {
         var connectedServer: EndpointInfo? = null
             set(value) {
                 field = value
-                if (value != null) onConnectionToServer()
+                if (value != null) {
+                    appState = AppState.ACCESSING
+                    onConnectionToServer()
+                }
                 else onDisconnectionFromServer()
             }
         var onConnectionToServer = {}
         var onDisconnectionFromServer = {}
-        var connectedClients = object : ArrayList<EndpointInfo>() {
+        var connectedNearbyClients = object : ArrayList<EndpointInfo>() {
             override fun add(element: EndpointInfo): Boolean {
                 val x = super.add(element)
-                onClientAdded()
+                onNearbyClientAdded()
+                if(size>1)appState = AppState.CONNECTED
                 return x
             }
 
             override fun remove(element: EndpointInfo): Boolean {
                 val x = super.remove(element)
-                onClientRemoved()
+                onNearbyClientRemoved()
                 return x
             }
         }
-        var onClientAdded = {}
-        var onClientRemoved = {}
+        var connectedSocketClients = object : ArrayList<SocketEndpointInfo>() {
+            override fun add(element: SocketEndpointInfo): Boolean {
+                val x = super.add(element)
+                onSocketClientAdded()
+                if(size>1)appState = AppState.CONNECTED
+                return x
+            }
 
+            override fun remove(element: SocketEndpointInfo): Boolean {
+                val x = super.remove(element)
+                onSocketClientRemoved()
+                return x
+            }
+        }
+        var onNearbyClientAdded = {}
+        var onNearbyClientRemoved = {}
+        var onSocketClientAdded = {}
+        var onSocketClientRemoved = {}
+
+        var socketPort : Int = 0
+        var onSocketError : (Exception) -> Unit = {}
+
+        val allClients
+            get() = connectedNearbyClients + connectedSocketClients
         val connectionText: String
             get() {
                 return when (appState) {
-                    AppState.CONNECTED -> "Connected to " + if (connectedClients.size > 1) "${connectedClients.size} devices" else "${connectedClients[0].name}"
+                    AppState.CONNECTED -> "Connected to " + if (allClients.size > 1) "${allClients.size} devices" else "${allClients[0].name}"
                     AppState.ACCESSING -> "Accessing ${connectedServer?.name}"
                     else -> ""
                 }

@@ -59,7 +59,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-config-ktx'
     implementation 'com.google.android.gms:play-services-auth:20.4.1'
     implementation 'com.google.android.gms:play-services-location:21.0.1'
-
+    implementation 'com.google.firebase:firebase-firestore'
     //nearby
     implementation 'com.google.android.gms:play-services-nearby:18.4.0'
 }

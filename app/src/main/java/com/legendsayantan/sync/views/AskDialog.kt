@@ -19,12 +19,12 @@ class AskDialog(var activity: Activity,var string: String, var onYes :() -> Unit
         view.findViewById<TextView>(R.id.textView).text = string
         if(!showBtns) view.findViewById<View>(R.id.btns).visibility = View.GONE
         view.findViewById<MaterialCardView>(R.id.yesBtn).setOnClickListener {
-            d.dismiss()
             onYes()
+            onNo = {}
+            d.dismiss()
         }
         view.findViewById<MaterialCardView>(R.id.noBtn).setOnClickListener {
             d.dismiss()
-            onNo()
         }
         d.window?.setBackgroundDrawable(ColorDrawable(activity.resources.getColor(R.color.transparent)))
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);

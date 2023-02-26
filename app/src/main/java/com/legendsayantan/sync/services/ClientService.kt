@@ -9,7 +9,6 @@ import android.os.IBinder
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.firebase.auth.FirebaseAuth
-import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.*
 import com.legendsayantan.sync.workers.*
@@ -21,7 +20,7 @@ class ClientService : Service() {
 
     lateinit var notificationManager: NotificationManager
     lateinit var builder: Notification.Builder
-    var noticount = 0;
+    var noticount = 2;
     lateinit var transferThread: Thread
     lateinit var values: Values
 
@@ -246,5 +245,7 @@ class ClientService : Service() {
 
         var notificationDataList = ArrayList<NotificationData>()
         var onNotificationUpdated: (NotificationData, Int) -> Unit = { _, _ -> }
+
+        var postNoti = false
     }
 }

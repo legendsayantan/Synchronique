@@ -45,6 +45,7 @@ class LookupService : Service() {
     override fun onDestroy() {
         Nearby.getConnectionsClient(this).stopDiscovery()
         Values.appState = Values.Companion.AppState.IDLE
+        lookupStrategy = null
         super.onDestroy()
     }
     private fun startDiscovery() {
@@ -71,7 +72,7 @@ class LookupService : Service() {
         Nearby.getConnectionsClient(this).stopDiscovery()
         Nearby.getConnectionsClient(this)
             .startDiscovery(values.nearby_advertise, endpointDiscoveryCallback, DiscoveryOptions.Builder().setStrategy(
-                lookupStrategy).build())
+                lookupStrategy!!).build())
             .addOnCompleteListener {
             }
             .addOnSuccessListener {
@@ -91,6 +92,6 @@ class LookupService : Service() {
         var endpoint_updated: () -> Unit = {}
         lateinit var discover_id : String
         var endpoints = ArrayList<EndpointInfo>()
-        lateinit var lookupStrategy : Strategy
+        var lookupStrategy : Strategy? = null
     }
 }

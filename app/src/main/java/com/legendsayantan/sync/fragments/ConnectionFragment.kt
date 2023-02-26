@@ -1,34 +1,36 @@
 package com.legendsayantan.sync.fragments
 
+import EncryptionManager
 import android.annotation.SuppressLint
+import android.app.Notification
+import android.app.NotificationManager
+import android.app.Service
 import android.content.Intent
 import android.os.Bundle
 import android.transition.TransitionManager
-import androidx.fragment.app.Fragment
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.LinearLayout
-import android.widget.ListView
-import android.widget.TextView
+import android.widget.*
+import androidx.fragment.app.Fragment
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.android.material.card.MaterialCardView
+import com.google.firebase.auth.FirebaseAuth
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.adapters.NotificationListAdapter
 import com.legendsayantan.sync.models.NotificationData
 import com.legendsayantan.sync.models.NotificationReply
+import com.legendsayantan.sync.models.SocketEndpointInfo
 import com.legendsayantan.sync.services.*
 import com.legendsayantan.sync.views.AskDialog
 import com.legendsayantan.sync.views.ChatDialog
 import com.legendsayantan.sync.views.ConnectionDialog
-import com.legendsayantan.sync.workers.CardAnimator
-import com.legendsayantan.sync.workers.Network
-import com.legendsayantan.sync.workers.Values
+import com.legendsayantan.sync.workers.*
+import java.net.Socket
 import java.util.*
-import kotlin.collections.ArrayList
 
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
@@ -42,14 +44,16 @@ private const val ARG_PARAM2 = "param2"
 class ConnectionFragment : Fragment() {
     private var param1: String? = null
     private var param2: String? = null
+    lateinit var values: Values
     private lateinit var singleLookupButton: MaterialCardView
     private lateinit var multiLookupButton: MaterialCardView
+    private lateinit var onlineLookupButton: MaterialCardView
     private lateinit var accessCard: View
     private lateinit var connectionCard: View
     lateinit var network: Network
     private var replyDialog: ChatDialog? = null
 
-    var noticount = 0
+    var noticount = 100
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -91,17 +95,110 @@ class ConnectionFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         instance = this
         network = Network(requireContext())
+        values = Values(requireContext())
         accessCard = requireView().findViewById(R.id.accessCard)
         connectionCard = requireView().findViewById(R.id.connectCard)
         singleLookupButton = requireView().findViewById(R.id.singleCard)
         multiLookupButton = requireView().findViewById(R.id.multiCard)
+        onlineLookupButton = requireView().findViewById(R.id.onlineCard)
+        onlineLookupButton.findViewById<MaterialCardView>(R.id.startOnlineSearch).setOnClickListener {
+            val editText = onlineLookupButton.findViewById<EditText>(R.id.email)
+            if(editText.text.toString().isEmpty())return@setOnClickListener
+            when (Values.appState) {
+                Values.Companion.AppState.IDLE -> {
+                    val portText = onlineLookupButton.findViewById<EditText>(R.id.port)
+                    val text = editText.text.toString()
+                    if (Patterns.EMAIL_ADDRESS.matcher(text).matches()) {
+                        //email
+                        values.firestore.document(text)
+                            .get()
+                            .addOnSuccessListener { document ->
+                                if (document != null) {
+                                    val value = document.data?.get("ip") as String
+                                    Thread{
+                                        try {
+                                            val ip = EncryptionManager().decrypt(value,portText.text.toString())
+                                            val socket = Socket(ip, portText.text.toString().toInt())
+                                            socket.getOutputStream().write(FirebaseAuth.getInstance().currentUser?.displayName?.toByteArray())
+                                            Values.connectedServer = SocketEndpointInfo(text, socket)
+                                        }catch (e: Exception) {
+                                            portText.error = "Wrong port or user is not online"
+                                        }
+                                    }.start()
+                                } else {
+                                    editText.error = "No such user found"
+                                }
+                            }
+                            .addOnFailureListener { exception ->
+                                editText.error = "No such user found"
+                            }
+                    } else {
+                        //ip
+                        Thread{
+                            try {
+                                val ip = text
+                                val socket = Socket(ip, portText.text.toString().toInt())
+                                socket.getOutputStream().write(FirebaseAuth.getInstance().currentUser?.displayName?.toByteArray())
+                                Values.connectedServer = SocketEndpointInfo(text, socket)
+                            }catch (e: Exception) {
+                                portText.error = "Wrong port or user is not online"
+                            }
+                        }.start()
+                    }
+
+                }
+                else -> {
+
+                }
+            }
+        }
+        onlineLookupButton.findViewById<MaterialCardView>(R.id.cancelOnlineSearch).setOnClickListener {
+            TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
+            onlineLookupButton.findViewById<LinearLayout>(R.id.onlineCardLayout).visibility = View.GONE
+            onlineLookupButton.findViewById<LinearLayout>(R.id.btn0).visibility = View.VISIBLE
+            multiLookupButton.visibility = View.VISIBLE
+            singleLookupButton.visibility = View.VISIBLE
+        }
         ClientService.connectionConfigured = {
             TransitionManager.beginDelayedTransition(requireView() as ViewGroup)
             initAccessCard()
         }
+        onlineLookupButton.setOnClickListener {
+            when (Values.appState) {
+                Values.Companion.AppState.IDLE -> {
+                    multiLookupButton.visibility = View.GONE
+                    singleLookupButton.visibility = View.GONE
+                    TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
+                    onlineLookupButton.findViewById<LinearLayout>(R.id.onlineCardLayout).visibility =
+                        View.VISIBLE
+                    onlineLookupButton.findViewById<LinearLayout>(R.id.btn0).visibility = View.GONE
+                }
+                Values.Companion.AppState.CONNECTED -> {
+                    AskDialog(
+                        requireActivity(),
+                        "Stop your own network?",
+                        {
+                            WaitForConnectionService.instance.stopSelf()
+                            ServerService.instance?.stopSelf()
+                        })
+                }
+                Values.Companion.AppState.WAITING -> {
+                    AskDialog(
+                        requireActivity(),
+                        "Stop your own network?",
+                        {
+                            WaitForConnectionService.instance.stopSelf()
+                            ServerService.instance?.stopSelf()
+                        })
+                }
+                else -> {
 
+                }
+            }
+        }
         singleLookupButton.setOnClickListener {
             if (singleLookupButton.findViewById<LinearLayout>(R.id.btn1).visibility != View.VISIBLE) {
+                //stop
                 Nearby.getConnectionsClient(requireContext()).stopDiscovery()
                 LookupService.instance.stopSelf()
                 TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
@@ -123,6 +220,7 @@ class ConnectionFragment : Fragment() {
             when (Values.appState) {
                 Values.Companion.AppState.IDLE -> {
                     multiLookupButton.visibility = View.GONE
+                    onlineLookupButton.visibility = View.GONE
                     discovery(false)
                     TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
                     singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =
@@ -177,6 +275,7 @@ class ConnectionFragment : Fragment() {
             when (Values.appState) {
                 Values.Companion.AppState.IDLE -> {
                     singleLookupButton.visibility = View.GONE
+                    onlineLookupButton.visibility = View.GONE
                     discovery(true)
                     TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
                     multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =
@@ -211,14 +310,31 @@ class ConnectionFragment : Fragment() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        ClientService.postNoti = values.postNotifications
+    }
     override fun onResume() {
         super.onResume()
+        ClientService.postNoti = false
+        values.bind(requireView().findViewById(R.id.mediaSwitch), "allowmediasync", true, serverValue = false){
+            MediaWorker.clientSyncToServer = values.allowMediaSync
+        }
+        values.bind(requireView().findViewById(R.id.volumeBar), "audiovolume",100,false){
+            AudioWorker.volume = values.audioVolume
+            requireView().findViewById<TextView>(R.id.volumeText).text = values.audioVolume.toString()
+        }
+        requireView().findViewById<TextView>(R.id.volumeText).text = values.audioVolume.toString()
+        values.bind(requireView().findViewById(R.id.realtimeNoti), "postnotifications", false,
+            serverValue = false
+        )
         Values.onAppStateChanged = {
             when (Values.appState) {
                 Values.Companion.AppState.ACCESSING -> {
                     TransitionManager.beginDelayedTransition(requireView() as ViewGroup)
                     singleLookupButton.visibility = View.GONE
                     multiLookupButton.visibility = View.GONE
+                    onlineLookupButton.visibility = View.GONE
                     accessCard.visibility = View.VISIBLE
                     connectionCard.visibility = View.GONE
                     try {
@@ -240,7 +356,7 @@ class ConnectionFragment : Fragment() {
                             "Single-connection",
                             true
                         )
-                    } else {
+                    } else if(LookupService.lookupStrategy == Strategy.P2P_STAR){
                         multiLookupButton.visibility = View.VISIBLE
                         singleLookupButton.visibility = View.GONE
                         multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =
@@ -252,6 +368,18 @@ class ConnectionFragment : Fragment() {
                             "Multi-connection",
                             true
                         )
+                    }else{
+                        singleLookupButton.visibility = View.GONE
+                        multiLookupButton.visibility = View.GONE
+                        onlineLookupButton.visibility = View.VISIBLE
+                        singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =
+                            View.GONE
+                        singleLookupButton.findViewById<LinearLayout>(R.id.btn1).visibility =
+                            View.VISIBLE
+                        multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =
+                            View.GONE
+                        multiLookupButton.findViewById<LinearLayout>(R.id.btn2).visibility =
+                            View.VISIBLE
                     }
                 }
                 else -> {
@@ -267,6 +395,9 @@ class ConnectionFragment : Fragment() {
                     multiLookupButton.findViewById<LinearLayout>(R.id.btn2).visibility =
                         View.VISIBLE
                     connectionCard.visibility = View.VISIBLE
+                    connectionCard.findViewById<LinearLayout>(R.id.onlineCardLayout).visibility =
+                        View.GONE
+                    connectionCard.findViewById<LinearLayout>(R.id.btn0).visibility = View.VISIBLE
                     setStatusText(requireView().findViewById(R.id.discoverType), "", false)
                 }
             }
@@ -314,7 +445,6 @@ class ConnectionFragment : Fragment() {
                         "Requesting..."
                     ClientService.connectionCanceled = { connectionDialog.hide() }
                     Values.onConnectionToServer = {
-                        Values.appState = Values.Companion.AppState.ACCESSING
                         connectionDialog.hide()
                         Values.onConnectionToServer = {}
                     }
@@ -325,6 +455,7 @@ class ConnectionFragment : Fragment() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     fun initAccessCard() {
         val name = requireView().findViewById<TextView>(R.id.name)
         val hash = requireView().findViewById<TextView>(R.id.hash)
@@ -334,8 +465,8 @@ class ConnectionFragment : Fragment() {
         val triggerAccess = requireView().findViewById<View>(R.id.trigger_access)
         val notiAccess = requireView().findViewById<View>(R.id.noti_access)
         name.text = Values.connectedServer?.name
-        hash.text = Values.connectedServer?.uidHash.also {
-            it?.substring(0, it.length / 3) + " " + it?.substring(
+        Values.connectedServer?.uidHash.also {
+            hash.text = it?.substring(0, it.length / 3) + " " + it?.substring(
                 it.length / 3,
                 it.length * 2 / 3
             ) + " " + it?.substring(it.length * 2 / 3, it.length)
@@ -354,6 +485,8 @@ class ConnectionFragment : Fragment() {
             if (ClientService.clientConfig.trigger) View.VISIBLE else View.GONE
         notiAccess.visibility = if (ClientService.clientConfig.noti) View.VISIBLE else View.GONE
         val cardList = java.util.ArrayList<MaterialCardView>()
+        cardList.add(mediaAccess as MaterialCardView)
+        cardList.add(audioAccess as MaterialCardView)
         cardList.add(triggerAccess as MaterialCardView)
         cardList.add(notiAccess as MaterialCardView)
         CardAnimator.initExpandableCards(cardList)
@@ -368,6 +501,8 @@ class ConnectionFragment : Fragment() {
                 notiList.adapter =
                     NotificationListAdapter(requireContext(), ClientService.notificationDataList)
                 notiList.setSelectionFromTop(firstVisibleItem, topOffset)
+            }else if(values.postNotifications){
+                postNotification(notificationData)
             }
             if (replyDialog != null) {
                 replyDialog?.newData(notificationData)
@@ -382,7 +517,20 @@ class ConnectionFragment : Fragment() {
             }
         }
     }
-
+    fun postNotification(notificationData: NotificationData){
+        val builder = Notification.Builder(
+            requireContext(),
+            Notifications(requireContext()).client_channel
+        )
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(notificationData.title)
+            .setContentText(notificationData.text)
+            .setSubText(notificationData.app_id+if(notificationData.subtext.isNullOrEmpty())"" else " · "+notificationData.subtext)
+            .setWhen(notificationData.time)
+            .setShowWhen(true)
+        (requireContext().getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager).notify(noticount, builder.build())
+        noticount++
+    }
     fun stopDiscover() {
         if (isAdded) {
 

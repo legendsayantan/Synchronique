@@ -12,8 +12,7 @@
         android:id="@+id/connectCard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:visibility="gone">
+        android:orientation="vertical">
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -60,7 +59,111 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/onlineCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="25dp"
+            android:layout_marginBottom="25dp"
+            app:cardBackgroundColor="?attr/backgroundColor"
+            app:cardCornerRadius="25dp"
+            app:strokeColor="?attr/colorPrimary"
+            app:strokeWidth="3dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:layout_editor_absoluteX="25dp">
 
+            <LinearLayout
+                android:id="@+id/onlineCardLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginVertical="15dp"
+                android:layout_marginHorizontal="25dp"
+                android:orientation="vertical">
+                <EditText
+                    android:id="@+id/email"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ems="10"
+                    android:inputType="textEmailAddress"
+                    android:hint="Ip address or Email" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+                    <EditText
+                        android:id="@+id/port"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ems="5"
+                        android:layout_weight="1"
+                        android:hint="port"
+                        android:layout_marginEnd="15dp"
+                        android:inputType="number" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/startOnlineSearch"
+                        android:layout_width="wrap_content"
+                        android:layout_weight="1"
+                        app:cardBackgroundColor="?attr/backgroundColor"
+                        app:cardCornerRadius="15dp"
+                        app:strokeColor="?attr/colorPrimary"
+                        app:strokeWidth="3dp"
+                        android:layout_marginEnd="15dp"
+                        android:layout_height="match_parent">
+
+                        <ImageView
+                            android:id="@+id/imageView4"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_margin="5dp"
+                            android:src="@drawable/baseline_link_24" />
+                    </com.google.android.material.card.MaterialCardView>
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cancelOnlineSearch"
+                        android:layout_width="wrap_content"
+                        android:layout_weight="1"
+                        app:cardBackgroundColor="?attr/backgroundColor"
+                        app:cardCornerRadius="15dp"
+                        app:strokeColor="?attr/colorPrimary"
+                        app:strokeWidth="3dp"
+                        android:layout_height="match_parent">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_margin="5dp"
+                            android:src="@drawable/baseline_close_24" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn0"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:visibility="gone"
+                android:orientation="horizontal"
+                android:padding="15dp">
+
+                <ImageView
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    app:srcCompat="@drawable/baseline_search_24" />
+
+                <TextView
+                    android:id="@+id/btnText0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:gravity="center"
+                    android:text="Socket connection"
+                    android:textSize="20sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/singleCard"
             android:layout_width="match_parent"
@@ -68,7 +171,7 @@
             android:layout_marginHorizontal="25dp"
             android:layout_marginBottom="25dp"
             app:cardBackgroundColor="?attr/backgroundColor"
-            app:cardCornerRadius="50dp"
+            app:cardCornerRadius="25dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:strokeColor="?attr/colorPrimary"
@@ -120,7 +223,7 @@
             android:layout_marginHorizontal="25dp"
             android:layout_marginBottom="25dp"
             app:cardBackgroundColor="?attr/backgroundColor"
-            app:cardCornerRadius="50dp"
+            app:cardCornerRadius="25dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/singleCard"
             app:strokeColor="?attr/colorPrimary"
@@ -168,6 +271,7 @@
 
     <ScrollView
         android:id="@+id/accessCard"
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -316,28 +420,52 @@
                     app:strokeColor="?attr/colorPrimary"
                     app:strokeWidth="3dp">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingHorizontal="25dp"
-                        android:paddingVertical="15dp"
-                        android:gravity="center"
-                        android:orientation="horizontal">
 
-                        <ImageView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="10dp"
-                            android:src="@drawable/baseline_play_circle_outline_24" />
 
-                        <TextView
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Media Controls"
-                            android:textColor="?attr/colorPrimary"
-                            android:textSize="15sp" />
-                    </LinearLayout>
+                            android:layout_height="match_parent"
+                            android:orientation="vertical">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:paddingHorizontal="25dp"
+                                android:paddingVertical="15dp"
+                                android:gravity="center"
+                                android:orientation="horizontal">
+
+                                <ImageView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginEnd="10dp"
+                                    android:src="@drawable/baseline_play_circle_outline_24" />
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Media Playback"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textSize="15sp" />
+                        </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="horizontal">
+                                <androidx.appcompat.widget.SwitchCompat
+                                    android:id="@+id/mediaSwitch"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="35dp"
+                                    android:checked="true"
+                                    android:layout_marginHorizontal="25dp"
+                                    android:layout_marginBottom="15dp"
+                                    android:text="Sync with controller server" />
+                            </LinearLayout>
+
+
+
+                        </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
@@ -349,28 +477,70 @@
                     app:cardCornerRadius="25dp"
                     app:strokeColor="?attr/colorPrimary"
                     app:strokeWidth="3dp">
-
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingHorizontal="25dp"
-                        android:paddingVertical="15dp"
-                        android:gravity="center"
-                        android:orientation="horizontal">
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:paddingHorizontal="25dp"
+                            android:paddingVertical="15dp"
+                            android:gravity="center"
+                            android:orientation="horizontal">
 
-                        <ImageView
+                            <ImageView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="10dp"
+                                android:src="@drawable/baseline_music_note_24" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Audio Stream"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="15sp" />
+                        </LinearLayout>
+
+
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginHorizontal="25dp"
+                            android:layout_marginBottom="15dp"
+                            android:orientation="horizontal">
+                            <TextView
+                            android:id="@+id/textView5"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="10dp"
-                            android:src="@drawable/baseline_music_note_24" />
+                            android:text="Volume" />
+                            <SeekBar
+                                android:id="@+id/volumeBar"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:min="0"
+                                android:progress="100"
+                                android:max="150"/>
 
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Audio Stream"
-                            android:textColor="?attr/colorPrimary"
-                            android:textSize="15sp" />
+                            <TextView
+                                android:id="@+id/volumeText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="100" />
+
+                            <TextView
+                                android:id="@+id/textView7"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="%" />
+                        </LinearLayout>
+
+
+
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -416,6 +586,7 @@
                             android:layout_height="wrap_content">
 
                             <include layout="@layout/layout_counter"
+                                android:id="@+id/counter"
                                 android:layout_width="wrap_content"
                                 android:layout_marginEnd="25dp"
                                 android:layout_height="wrap_content" />
@@ -481,12 +652,13 @@
                             android:layout_height="360dp"
                             android:orientation="vertical">
 
-                            <TextView
-                                android:id="@+id/textView5"
+                            <androidx.appcompat.widget.SwitchCompat
+                                android:id="@+id/realtimeNoti"
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center"
-                                android:text="Chats and Notifications" />
+                                android:layout_height="35dp"
+                                android:layout_marginHorizontal="25dp"
+                                android:text="Get realtime notifications" />
+
 
                             <ListView
                                 android:id="@+id/noti_list"

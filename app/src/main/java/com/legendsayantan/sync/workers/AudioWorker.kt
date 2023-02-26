@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.*
+import android.media.audiofx.Virtualizer
 import android.media.projection.MediaProjection
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -15,6 +16,7 @@ import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.Payload
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.EndpointInfo
+import com.legendsayantan.sync.models.SocketEndpointInfo
 import com.legendsayantan.sync.services.ClientService
 import java.io.IOException
 import java.io.PipedInputStream
@@ -34,7 +36,11 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
     var clientele = object : ArrayList<EndpointInfo>(){
         override fun add(element: EndpointInfo): Boolean {
             val x = super.add(element)
-            Nearby.getConnectionsClient(context).sendPayload(element.id,Payload.fromStream(audioStream))
+            if(element is SocketEndpointInfo){
+
+            }else{
+                Nearby.getConnectionsClient(context).sendPayload(element.id,Payload.fromStream(audioStream))
+            }
             return x
         }
     }
@@ -85,19 +91,13 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
                 } catch (e: Exception) {
                     errorCount++
                     if(errorCount > 10) {
-                        Nearby.getConnectionsClient(context).stopAllEndpoints()
-                        val notification = Notification.Builder(context, Notifications(context).connection_channel)
-                            .setContentTitle("Audio Stream (System)")
-                            .setContentText("Connection timed out!")
-                            .setSmallIcon(R.drawable.ic_launcher_foreground)
-                            .build()
-                        val manager = (context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager)
-                        manager.notify(Values.REQUEST_CODE_CAPTURE_PERM, notification)
-                        break
+                        try {
+                            audioStream = PipedInputStream()
+                            audioOutputStream = PipedOutputStream(audioStream)
+                        } catch (_: IOException) { }
                     }
                 }
             }
-            println("Transfer thread streaming")
         }
         transferThread.start()
     }
@@ -171,6 +171,7 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
         )
         val buffer = ByteArray(bufferSize)
         var length: Int
+        val virtualizer = Virtualizer(0,audioTrack.audioSessionId)
         audioTrack.play()
         transferThread = Thread {
             try {
@@ -183,6 +184,42 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
                 e.printStackTrace()
             }
         }
+        onVolumeChanged = {
+            audioTrack.setVolume(volume/100f)
+            if(it>100){
+                virtualizer.enabled = true
+                virtualizer.setStrength(((it-100)*100).toShort())
+                audioTrack.attachAuxEffect(virtualizer.id)
+                audioTrack.setAuxEffectSendLevel(1f)
+                audioTrack.setVolume(1f)
+            }else{
+                if (virtualizer.enabled)virtualizer.enabled = false
+            }
+        }
         transferThread.start()
+    }
+
+    fun kill(){
+        transferThread.interrupt()
+        try {
+            audioRecord.stop()
+            audioRecord.release()
+        }catch (e: Exception){
+            e.printStackTrace()
+        }
+        try {
+            audioOutputStream.close()
+            audioStream.close()
+        }catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    companion object{
+        var volume: Int = 100
+        set(value) {
+            field = value
+            onVolumeChanged(value)
+        }
+        var onVolumeChanged : (Int) -> Unit = {}
     }
 }

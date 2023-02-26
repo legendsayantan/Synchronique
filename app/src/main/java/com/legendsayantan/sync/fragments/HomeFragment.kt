@@ -105,7 +105,7 @@ class HomeFragment() : Fragment() {
         startBtn = requireView().findViewById(R.id.startBtn)
         //appStateUpdate()
         Values.onAppStateChanged = {
-            values.onUpdate()
+            values.onServerValueUpdate()
             appStateUpdate()
         }
 
@@ -149,15 +149,15 @@ class HomeFragment() : Fragment() {
     override fun onResume() {
         super.onResume()
         //bindings
-        values.onUpdate = onUpdate@{
+        values.onServerValueUpdate = onUpdate@{
             if (Values.appState == Values.Companion.AppState.IDLE) {
                 WaitForConnectionService.serverConfig = ServerConfig(values)
-                if(isAdded)requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled = true
+                if (isAdded) requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled = true
                 println("serverConfig setup")
             } else if (Values.appState == Values.Companion.AppState.WAITING) {
 
             }
-            if(!isAdded)return@onUpdate
+            if (!isAdded) return@onUpdate
             requireView().findViewById<ImageView>(R.id.imageSync).animate().alpha(
                 if (WaitForConnectionService.serverConfig!!.clientConfig.media) 1F else 0.3F
             ).setDuration(250).start()
@@ -171,6 +171,10 @@ class HomeFragment() : Fragment() {
                 if (WaitForConnectionService.serverConfig!!.clientConfig.noti) 1F else 0.3F
             ).setDuration(250).start()
             requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled =
+                (Values.appState == Values.Companion.AppState.IDLE)
+            requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled =
+                (Values.appState == Values.Companion.AppState.IDLE)
+            requireView().findViewById<CompoundButton>(R.id.socket).isEnabled =
                 (Values.appState == Values.Companion.AppState.IDLE)
         }
         values.bind(requireView().findViewById(R.id.nearby), "nearby", true) {
@@ -209,22 +213,32 @@ class HomeFragment() : Fragment() {
             "audiostreammic",
             Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
         )
-        values.bind(requireView().findViewById(R.id.quality), "audiosample", 8000) {
+        values.bind(
+            requireView().findViewById(R.id.quality),
+            "audiosample",
+            8000,
+            multiplier = 1000
+        ) {
             requireView().findViewById<TextView>(R.id.seekValue).text = it.toString()
         }
         requireView().findViewById<TextView>(R.id.seekValue).text =
             (values.audioSample / 1000).toString()
         requireView().findViewById<RadioButton>(R.id.audio_internal).isEnabled =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-        values.onUpdate()
+        values.onServerValueUpdate()
         requireView().findViewById<ImageView>(R.id.info).setOnClickListener {
-            AskDialog(requireActivity(),
-                (if (values.nearby) resources.getString(R.string.nearby_info) + "\n" else "") +
-                        (if (values.socket) resources.getString(R.string.socket_info) else ""),
-                {},
-                {},
-                false
-            )
+            if ((Values.appState == Values.Companion.AppState.WAITING || Values.appState == Values.Companion.AppState.CONNECTED) && values.socket) {
+                setTicker("Your socket port is " + Values.socketPort, 3000)
+            } else {
+                AskDialog(
+                    requireActivity(),
+                    (if (values.nearby) resources.getString(R.string.nearby_info) + "\n" else "") +
+                            (if (values.socket) resources.getString(R.string.socket_info) else ""),
+                    {},
+                    {},
+                    false
+                )
+            }
         }
 
         //Card Animations
@@ -420,22 +434,42 @@ class HomeFragment() : Fragment() {
     private fun startToAdvertise() = if (Values(requireContext()).syncParams) {
         Values.appState = Values.Companion.AppState.PERMS
         WaitForConnectionService.serverConfig = ServerConfig(values)
-        PermissionManager().ask(requireActivity(),WaitForConnectionService.serverConfig!!) {
+        PermissionManager().ask(requireActivity(), WaitForConnectionService.serverConfig!!) {
             Timer().scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
                     if (isAdded) {
-                        requireContext().startForegroundService(
-                            Intent(
-                                requireContext(),
-                                WaitForConnectionService::class.java
+                        val start = {
+                            requireContext().startForegroundService(
+                                Intent(
+                                    requireContext(),
+                                    WaitForConnectionService::class.java
+                                )
                             )
-                        )
-                        requireContext().startForegroundService(
-                            Intent(
-                                requireContext(),
-                                ServerService::class.java
+                            requireContext().startForegroundService(
+                                Intent(
+                                    requireContext(),
+                                    ServerService::class.java
+                                )
                             )
-                        )
+                        }
+                        if (values.socket) {
+                            requireActivity().runOnUiThread {
+                                AskDialog(
+                                    requireActivity(),
+                                    "To use Socket, your IPv6 address will be stored on our servers in an end-to-end encrypted format. Do you want to continue?",
+                                    {
+                                        start()
+                                    }, {
+                                        if(values.nearby){
+                                            values.socket = false
+                                            start()
+                                        }else{
+                                            Values.appState = Values.Companion.AppState.IDLE
+                                        }
+                                    })
+                            }
+                        } else if(values.nearby) start()
+                        else Values.appState = Values.Companion.AppState.IDLE
                         cancel()
                     }
                 }

@@ -38,10 +38,6 @@ class MediaWorker(var context: Context) {
     private var network : Network = Network(context)
     var count = 0
     var timer = Timer()
-    var clientele = object : ArrayList<EndpointInfo>() {
-
-    }
-
     fun startMediaControls() {
         val playPauseIntent = Intent(context, ServerService::class.java)
         playPauseIntent.action = "play"
@@ -227,12 +223,12 @@ class MediaWorker(var context: Context) {
             return
         }
         val recentController = controllers[0]
-        mediaSyncPacket.timeStamp?.let { recentController.transportControls.seekTo(it) }
+        if(clientSyncToServer)mediaSyncPacket.timeStamp?.let { recentController.transportControls.seekTo(it) }
         val noti =
             (if (mediaSyncPacket.isPlaying == true) "Playing : " else "Paused : ") + mediaSyncPacket.title
         val noti2 = "${mediaSyncPacket.artist}"
         if (mediaSyncPacket.isPlaying == true) {
-            recentController.transportControls.play()
+            if(clientSyncToServer)recentController.transportControls.play()
             timer.scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
                     if (count * 1000 >= mediaSyncPacket.duration?.toInt()!! || mediaSyncPacket.isPlaying == false) {
@@ -261,13 +257,15 @@ class MediaWorker(var context: Context) {
                 }
             }, 3, 1000)
         } else {
-            recentController.transportControls.pause()
-            val intent = Intent(Intent.ACTION_MEDIA_BUTTON)
-            intent.putExtra(
-                Intent.EXTRA_KEY_EVENT,
-                KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE)
-            )
-            context.sendBroadcast(intent)
+            if(clientSyncToServer){
+                recentController.transportControls.pause()
+                val intent = Intent(Intent.ACTION_MEDIA_BUTTON)
+                intent.putExtra(
+                    Intent.EXTRA_KEY_EVENT,
+                    KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE)
+                )
+                context.sendBroadcast(intent)
+            }
             val notification = Notification.Builder(context, Notifications(context).client_channel)
                 .setContentTitle(noti)
                 .setContentText(noti2)
@@ -287,6 +285,7 @@ class MediaWorker(var context: Context) {
     }
     companion object{
         var Notification_Title: String = "Media Service"
+        var clientSyncToServer:Boolean = true
     }
 
 }

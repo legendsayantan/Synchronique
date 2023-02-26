@@ -104,7 +104,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="10dp"
-                        android:text="Necessary permissions -"
+                        android:text="Necessary permissions for Nearby -"
                         android:textSize="14sp" />
 
                     <Switch
@@ -531,7 +531,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:textColor="?attr/colorPrimary"
-                            android:text="Remote Notifications"
+                            android:text="Remote Notifications / Chats"
                             android:textSize="15sp" />
                     </LinearLayout>
 
@@ -552,7 +552,7 @@
                                 android:id="@+id/noti_reply"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Allow replies" />
+                                android:text="Allow Remote Chats" />
                         </LinearLayout>
 
 
