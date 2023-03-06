@@ -42,14 +42,20 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
         }
 
         fun toEncBytes(data: PayloadPacket): ByteArray {
+            return toEncString(data).toByteArray()
+        }
+
+        fun toEncString(data: PayloadPacket):String{
             return EncryptionManager().encrypt(toJSON(data), EncryptionManager.cachedKey!!)
-                .toByteArray()
         }
 
         fun fromEncBytes(data: ByteArray): PayloadPacket {
+            return fromEncString(String(data))
+        }
+        fun fromEncString(data: String):PayloadPacket{
             return fromJson(
                 EncryptionManager().decrypt(
-                    String(data),
+                    data,
                     EncryptionManager.cachedKey!!
                 )
             )

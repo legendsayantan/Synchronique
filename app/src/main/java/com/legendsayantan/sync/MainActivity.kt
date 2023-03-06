@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private val RC_SIGN_IN = 1001
     lateinit var cardAnimator: CardAnimator
-    lateinit var values : Values
+    lateinit var values: Values
     var homeFragment = HomeFragment()
     var connectionFragment = ConnectionFragment()
     var exploreFragment = ExploreFragment()
@@ -61,7 +61,8 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.setBackgroundDrawable(ColorDrawable(window.statusBarColor))
         bottomAppBar = findViewById(R.id.bottomBar);
         firebaseAuth = Firebase.auth
-        mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        mediaProjectionManager =
+            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         values = Values(this)
         if (Firebase.auth.currentUser == null) {
             supportFragmentManager.beginTransaction()
@@ -71,11 +72,27 @@ class MainActivity : AppCompatActivity() {
             loginSuccess()
         }
     }
+
     override fun onResume() {
         super.onResume()
         instance = this
         checkPermissions()
         HomeFragment.latestInstance?.refreshFragment()
+        EncryptionManager.fetchDynamicKey(
+            { key ->
+                if (BuildConfig.DEBUG) {
+                    println("---------- key ----------")
+                    println(key)
+                    println("---------- key ----------")
+                }
+            },{
+                if (BuildConfig.DEBUG) {
+                    println("---------- key ----------")
+                    it.printStackTrace()
+                    println("---------- key ----------")
+                }
+            }
+        )
     }
 
     override fun onPause() {
@@ -134,15 +151,19 @@ class MainActivity : AppCompatActivity() {
                         ServerService.mediaProjectionManager = mediaProjectionManager
                         ServerService.resultCode = resultCode
                         ServerService.data = data
-                        Toast.makeText(applicationContext,"Stream will be started.",Toast.LENGTH_LONG).show()
-                    }else{
-                        Toast.makeText(applicationContext,"NULL",Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            applicationContext,
+                            "Stream will be started.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(applicationContext, "NULL", Toast.LENGTH_LONG).show()
                     }
                 }
             } else {
                 Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
-                stopService(Intent(this,WaitForConnectionService::class.java))
-                stopService(Intent(this,ServerService::class.java))
+                stopService(Intent(this, WaitForConnectionService::class.java))
+                stopService(Intent(this, ServerService::class.java))
                 Values.appState = Values.Companion.AppState.IDLE
             }
         }
@@ -181,7 +202,7 @@ class MainActivity : AppCompatActivity() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.web_client_id)).requestEmail().build()
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
-        googleSignInClient.signOut().addOnSuccessListener{
+        googleSignInClient.signOut().addOnSuccessListener {
             firebaseAuth.signOut().also {
                 finishAndRemoveTask()
             }
@@ -288,7 +309,7 @@ class MainActivity : AppCompatActivity() {
         var bluetoothAccess: Boolean = false
         var locationAccess: Boolean = false
         var instance: MainActivity? = null
-        lateinit var mediaProjectionManager : MediaProjectionManager
+        lateinit var mediaProjectionManager: MediaProjectionManager
 
         fun isLocationEnabled(context: Context): Boolean {
             val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager

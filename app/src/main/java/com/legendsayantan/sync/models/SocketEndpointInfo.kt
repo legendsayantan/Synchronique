@@ -1,9 +1,9 @@
 package com.legendsayantan.sync.models
 
-import java.net.Socket
+import com.legendsayantan.sync.workers.socket.SenderThread
 
 /**
  * @author legendsayantan
  */
-class SocketEndpointInfo(name:String,var socket: Socket) : EndpointInfo(socket.inetAddress.hostAddress as String, name,socket.port.toString()) {
+class SocketEndpointInfo(name:String,var senderThread: SenderThread) : EndpointInfo(senderThread.socket.inetAddress.hostAddress as String, name,senderThread.socket.port.toString()) {
 }

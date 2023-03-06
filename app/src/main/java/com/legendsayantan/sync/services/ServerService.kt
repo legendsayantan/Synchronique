@@ -14,6 +14,8 @@ import com.google.android.gms.nearby.connection.*
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.*
 import com.legendsayantan.sync.workers.*
+import java.io.OutputStream
+import java.io.PrintWriter
 
 class ServerService : Service() {
 
@@ -64,15 +66,14 @@ class ServerService : Service() {
 
     fun acceptConnection(endpointInfo: EndpointInfo) {
         if (endpointInfo is SocketEndpointInfo) {
-            endpointInfo.socket.getOutputStream().write(
-                PayloadPacket.toEncBytes(
-                    PayloadPacket(
-                        PayloadPacket.Companion.PayloadType.CONFIG_PACKET,
-                        serverConfig.clientConfig
-                    )
+            endpointInfo.senderThread.push(PayloadPacket.toEncString(
+                PayloadPacket(
+                    PayloadPacket.Companion.PayloadType.CONFIG_PACKET,
+                    WaitForConnectionService.serverConfig!!.clientConfig
                 )
-            )
+            ))
             Values.connectedSocketClients.add(endpointInfo)
+            if (Values.allClients.size==1) initialiseServe()
             serveDataTo(endpointInfo)
         } else {
             Nearby.getConnectionsClient(applicationContext)
@@ -124,13 +125,13 @@ class ServerService : Service() {
                         "Connected to ${endpointInfo.name}",
                         Toast.LENGTH_SHORT
                     ).show()
-                    if (!serverConfig.multiDevice) stopService(
+                    if ((values.nearby && !serverConfig.multiDevice) && !values.socket) stopService(
                         Intent(
                             applicationContext,
                             WaitForConnectionService::class.java
                         )
                     )
-                    if (Values.appState != Values.Companion.AppState.CONNECTED) initialiseServe()
+                    if (Values.allClients.size==1) initialiseServe()
                     //here comes the actual connection
                     Nearby.getConnectionsClient(applicationContext).sendPayload(
                         endpointInfo.id,
@@ -171,7 +172,8 @@ class ServerService : Service() {
         stopService(Intent(applicationContext, NotificationListener::class.java))
         try {
             audioWorker.kill()
-        }catch (_: UninitializedPropertyAccessException) {}
+        } catch (_: UninitializedPropertyAccessException) {
+        }
         Values.appState = Values.Companion.AppState.IDLE
         super.onDestroy()
     }
@@ -179,9 +181,6 @@ class ServerService : Service() {
 
     private fun initialiseServe() {
         println("initialise Serve")
-        Values.onNearbyClientRemoved = {
-            if (Values.connectedNearbyClients.size > 0 && !(values.multiDevice||values.socket)) stopSelf()
-        }
         if (serverConfig.clientConfig.media) {
             mediaWorker = MediaWorker(applicationContext)
             mediaWorker.startMediaControls()

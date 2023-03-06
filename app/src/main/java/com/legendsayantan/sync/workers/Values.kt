@@ -7,8 +7,8 @@ import android.widget.CompoundButton
 import android.widget.RadioButton
 import android.widget.SeekBar
 import com.google.android.gms.nearby.connection.Strategy
-import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
+import com.legendsayantan.sync.workers.socket.ServerThread
 import com.legendsayantan.sync.models.EndpointInfo
 import com.legendsayantan.sync.models.SocketEndpointInfo
 
@@ -32,31 +32,50 @@ class Values(context: Context) {
         prefs.edit().putString(key, value).apply()
     }
 
-    fun bind(switch: CompoundButton, key: String,default: Boolean = false,serverValue:Boolean=true,onChange: () -> Unit = {}){
+    fun bind(
+        switch: CompoundButton,
+        key: String,
+        default: Boolean = false,
+        serverValue: Boolean = true,
+        onChange: () -> Unit = {}
+    ) {
         switch.isChecked = prefs.getBoolean(key, default)
         switch.setOnCheckedChangeListener { _, isChecked ->
             set(key, isChecked)
-            if(serverValue)onServerValueUpdate() else onClientValueUpdate()
+            if (serverValue) onServerValueUpdate() else onClientValueUpdate()
             onChange()
         }
         onChange()
     }
 
-    fun bind(radioButton1: RadioButton, radioButton2: RadioButton, key: String,default: Boolean,serverValue:Boolean=true) {
+    fun bind(
+        radioButton1: RadioButton,
+        radioButton2: RadioButton,
+        key: String,
+        default: Boolean,
+        serverValue: Boolean = true
+    ) {
         radioButton1.isChecked = prefs.getBoolean(key, default)
         radioButton2.isChecked = !prefs.getBoolean(key, default)
         radioButton1.setOnCheckedChangeListener { _, isChecked ->
             set(key, isChecked)
-            if(serverValue)onServerValueUpdate() else onClientValueUpdate()
+            if (serverValue) onServerValueUpdate() else onClientValueUpdate()
         }
         radioButton2.setOnCheckedChangeListener { _, isChecked ->
             set(key, !isChecked)
-            if(serverValue)onServerValueUpdate() else onClientValueUpdate()
+            if (serverValue) onServerValueUpdate() else onClientValueUpdate()
         }
     }
 
-    fun bind(seekBar: SeekBar, key: String, def: Int,serverValue:Boolean=true,multiplier:Int=1, listener: (Int) -> Unit) {
-        seekBar.progress = prefs.getInt(key, def)/multiplier
+    fun bind(
+        seekBar: SeekBar,
+        key: String,
+        def: Int,
+        serverValue: Boolean = true,
+        multiplier: Int = 1,
+        listener: (Int) -> Unit
+    ) {
+        seekBar.progress = prefs.getInt(key, def) / multiplier
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 set(key, progress * multiplier)
@@ -67,10 +86,11 @@ class Values(context: Context) {
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                if(serverValue)onServerValueUpdate() else onClientValueUpdate()
+                if (serverValue) onServerValueUpdate() else onClientValueUpdate()
             }
         })
     }
+
     //server values
     var nearby
         get() = prefs.getBoolean("nearby", true)
@@ -88,6 +108,16 @@ class Values(context: Context) {
         get() = prefs.getBoolean("multidevice", false)
         set(value) {
             set("multidevice", value)
+        }
+    var socketOnline
+        get() = prefs.getBoolean("socketonline", false)
+        set(value) {
+            set("socketonline", value)
+        }
+    var ngrokAuthToken
+        get() = prefs.getString("ngrokauthtoken", "") ?: ""
+        set(value) {
+            set("ngrokauthtoken", value)
         }
     val networkStrategy
         get() = if (multiDevice) Strategy.P2P_STAR else Strategy.P2P_POINT_TO_POINT
@@ -139,6 +169,7 @@ class Values(context: Context) {
         set(value) {
             set("notireply", value)
         }
+
     //client values
     var allowMediaSync
         get() = prefs.getBoolean("allowmediasync", false)
@@ -158,6 +189,7 @@ class Values(context: Context) {
 
     //connection channel
     val nearby_advertise = "${context.packageName}.connect"
+
     //firestore
     val firestore = FirebaseFirestore.getInstance().collection("users")
 
@@ -179,8 +211,10 @@ class Values(context: Context) {
                 if (value != null) {
                     appState = AppState.ACCESSING
                     onConnectionToServer()
+                } else {
+                    appState = AppState.IDLE
+                    onDisconnectionFromServer()
                 }
-                else onDisconnectionFromServer()
             }
         var onConnectionToServer = {}
         var onDisconnectionFromServer = {}
@@ -188,7 +222,7 @@ class Values(context: Context) {
             override fun add(element: EndpointInfo): Boolean {
                 val x = super.add(element)
                 onNearbyClientAdded()
-                if(size>1)appState = AppState.CONNECTED
+                if (size > 1) appState = AppState.CONNECTED
                 return x
             }
 
@@ -202,7 +236,7 @@ class Values(context: Context) {
             override fun add(element: SocketEndpointInfo): Boolean {
                 val x = super.add(element)
                 onSocketClientAdded()
-                if(size>1)appState = AppState.CONNECTED
+                if (size > 0) appState = AppState.CONNECTED
                 return x
             }
 
@@ -217,8 +251,11 @@ class Values(context: Context) {
         var onSocketClientAdded = {}
         var onSocketClientRemoved = {}
 
-        var socketPort : Int = 0
-        var onSocketError : (Exception) -> Unit = {}
+        lateinit var runningServer : ServerThread
+        var localIp = "none"
+        var onlineIp = ""
+        var socketPort: Int = 0
+        var onSocketError: (Exception) -> Unit = {}
 
         val allClients
             get() = connectedNearbyClients + connectedSocketClients
@@ -230,6 +267,7 @@ class Values(context: Context) {
                     else -> ""
                 }
             }
+
         enum class AppState {
             IDLE,
             LOADING,

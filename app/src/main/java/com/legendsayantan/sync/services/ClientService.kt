@@ -6,13 +6,15 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.widget.Toast
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.firebase.auth.FirebaseAuth
+import com.legendsayantan.sync.workers.socket.ClientThread
+import com.legendsayantan.sync.BuildConfig
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.*
 import com.legendsayantan.sync.workers.*
-import java.util.*
 import kotlin.collections.ArrayList
 
 class ClientService : Service() {
@@ -48,7 +50,11 @@ class ClientService : Service() {
                 .build()
         startForeground(1, notification)
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        initiateConnection()
+        if (serverEndpoint.id.isEmpty()) {
+            connectToIpPort(serverEndpoint.name!!, serverEndpoint.uidHash.toInt())
+        }else{
+            initiateConnection()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -198,25 +204,28 @@ class ClientService : Service() {
 
     fun processIncomingPayload(payload: Payload, endpointInfo: EndpointInfo) {
         val payloadPacket = PayloadPacket.fromEncBytes(payload.asBytes()!!)
+        processPayloadPacket(payloadPacket)
+        if(payloadPacket.payloadType==PayloadPacket.Companion.PayloadType.DISCONNECT){
+            Nearby.getConnectionsClient(applicationContext)
+                .disconnectFromEndpoint(endpointInfo.id)
+            connectionCanceled()
+            Values.connectedServer = null
+            Values.appState = Values.Companion.AppState.IDLE
+            stopSelf()
+        }
+    }
+    fun processPayloadPacket(payloadPacket: PayloadPacket){
         when (payloadPacket.payloadType) {
-            PayloadPacket.Companion.PayloadType.DISCONNECT -> {
-                Nearby.getConnectionsClient(applicationContext)
-                    .disconnectFromEndpoint(endpointInfo.id)
-                connectionCanceled()
-                Values.connectedServer = null
-                Values.appState = Values.Companion.AppState.IDLE
-                stopSelf()
-            }
             PayloadPacket.Companion.PayloadType.CONFIG_PACKET -> {
                 clientConfig = payloadPacket.data as ClientConfig
                 prepareWorkers(clientConfig)
             }
             PayloadPacket.Companion.PayloadType.MEDIA_SYNC_PACKET -> {
-                if (mediaWorker==null) return
+                if (mediaWorker == null) return
                 mediaWorker!!.recvMediaSync(payloadPacket.data as MediaSyncPacket)
             }
             PayloadPacket.Companion.PayloadType.MEDIA_ACTION_PACKET -> {
-                if (mediaWorker==null) return
+                if (mediaWorker == null) return
                 mediaWorker!!.recvMediaAction(payloadPacket.data as MediaActionPacket)
             }
             PayloadPacket.Companion.PayloadType.NOTIFICATION_PACKET -> {
@@ -233,8 +242,39 @@ class ClientService : Service() {
             }
             else -> {}
         }
-    }
 
+    }
+    private fun connectToIpPort(ip: String, port: Int) {
+        ClientThread(
+            applicationContext,
+            ip,
+            port
+        ).apply {
+            onConnect = { senderThread ->
+                Values.connectedServer = SocketEndpointInfo(ip, senderThread)
+            }
+            onDisconnect = {
+                Values.connectedServer = null
+                instance.stopSelf()
+            }
+            onReceive = {
+                try {
+                    if(PayloadPacket.fromEncString(it).payloadType==PayloadPacket.Companion.PayloadType.DISCONNECT){
+                        Values.connectedServer = null
+                        instance.stopSelf()
+                    }else processPayloadPacket(PayloadPacket.fromEncString(it))
+                }catch (e:Exception){
+                    e.printStackTrace()
+                    println(it)
+                }
+            }
+            onError = {
+                if (BuildConfig.DEBUG) it.printStackTrace()
+                Toast.makeText(applicationContext, "Could not connect.", Toast.LENGTH_SHORT).show()
+            }
+            start()
+        }
+    }
     companion object {
         lateinit var instance: ClientService
         var connectionCanceled: () -> Unit = {}

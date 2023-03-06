@@ -148,7 +148,6 @@ class HomeFragment() : Fragment() {
     @SuppressLint("CutPasteId")
     override fun onResume() {
         super.onResume()
-        //bindings
         values.onServerValueUpdate = onUpdate@{
             if (Values.appState == Values.Companion.AppState.IDLE) {
                 WaitForConnectionService.serverConfig = ServerConfig(values)
@@ -172,33 +171,16 @@ class HomeFragment() : Fragment() {
             ).setDuration(250).start()
             requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled =
                 (Values.appState == Values.Companion.AppState.IDLE)
-            requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled =
-                (Values.appState == Values.Companion.AppState.IDLE)
-            requireView().findViewById<CompoundButton>(R.id.socket).isEnabled =
-                (Values.appState == Values.Companion.AppState.IDLE)
+            nearbySocketSelectionInitialise()
         }
         values.bind(requireView().findViewById(R.id.nearby), "nearby", true) {
-            if (values.nearby && (!values.socket)) {
-                requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
-            } else if (values.socket && (!values.nearby)) {
-                requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
-            } else {
-                requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = true
-                requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = true
-            }
+            nearbySocketSelectionInitialise()
             TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
             requireView().findViewById<View>(R.id.multidevice).visibility =
                 if (values.nearby) View.VISIBLE else View.GONE
         }
         values.bind(requireView().findViewById(R.id.socket), "socket") {
-            if (values.nearby && (!values.socket)) {
-                requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
-            } else if (values.socket && (!values.nearby)) {
-                requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
-            } else {
-                requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = true
-                requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = true
-            }
+            nearbySocketSelectionInitialise()
         }
         values.bind(requireView().findViewById(R.id.multidevice), "multidevice")
         values.bind(requireView().findViewById(R.id.media), "mediasync")
@@ -228,7 +210,7 @@ class HomeFragment() : Fragment() {
         values.onServerValueUpdate()
         requireView().findViewById<ImageView>(R.id.info).setOnClickListener {
             if ((Values.appState == Values.Companion.AppState.WAITING || Values.appState == Values.Companion.AppState.CONNECTED) && values.socket) {
-                setTicker("Your socket port is " + Values.socketPort, 3000)
+                setTicker("LAN ip ${Values.localIp} port ${Values.socketPort}", 5000)
             } else {
                 AskDialog(
                     requireActivity(),
@@ -452,23 +434,9 @@ class HomeFragment() : Fragment() {
                                 )
                             )
                         }
-                        if (values.socket) {
-                            requireActivity().runOnUiThread {
-                                AskDialog(
-                                    requireActivity(),
-                                    "To use Socket, your IPv6 address will be stored on our servers in an end-to-end encrypted format. Do you want to continue?",
-                                    {
-                                        start()
-                                    }, {
-                                        if(values.nearby){
-                                            values.socket = false
-                                            start()
-                                        }else{
-                                            Values.appState = Values.Companion.AppState.IDLE
-                                        }
-                                    })
-                            }
-                        } else if(values.nearby) start()
+                        if (values.socket && values.socketOnline && values.ngrokAuthToken.isEmpty()) {
+                            // TODO: ngrok login, auth and tunnel creation then call start()
+                        } else if(values.nearby || values.socket) start()
                         else Values.appState = Values.Companion.AppState.IDLE
                         cancel()
                     }
@@ -572,6 +540,16 @@ class HomeFragment() : Fragment() {
 
             }
         }, 500, 500)
+    }
+
+    fun nearbySocketSelectionInitialise(){
+        if (values.nearby != values.socket) {
+            if(values.nearby)requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
+            if(values.socket)requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
+        } else {
+            requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = true
+            requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = true
+        }
     }
 
     fun refreshFragment() {

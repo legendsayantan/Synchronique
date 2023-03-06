@@ -12,28 +12,21 @@ import android.widget.Toast
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.firebase.auth.FirebaseAuth
+import com.legendsayantan.sync.workers.socket.ServerThread
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
-import com.legendsayantan.sync.models.IpData
-import com.legendsayantan.sync.models.ServerConfig
-import com.legendsayantan.sync.models.SocketEndpointInfo
+import com.legendsayantan.sync.models.*
 import com.legendsayantan.sync.workers.Notifications
 import com.legendsayantan.sync.workers.Values
-import java.io.BufferedReader
 import java.io.IOException
-import java.io.InputStreamReader
-import java.net.MalformedURLException
-import java.net.ServerSocket
-import java.net.Socket
-import java.net.URL
+import java.net.*
 
 class WaitForConnectionService : Service() {
 
 
     lateinit var notificationManager: NotificationManager
     lateinit var builder: Notification.Builder
-    var noticount = 2;
-    lateinit var serverSocket: ServerSocket
+    var noticount = 2
     lateinit var values: Values
     override fun onBind(intent: Intent): IBinder {
         return null!!
@@ -71,7 +64,6 @@ class WaitForConnectionService : Service() {
                     it.printStackTrace()
                     if (values.nearby) values.socket = false
                     else {
-                        Values.appState = Values.Companion.AppState.IDLE
                         stopSelf()
                     }
                 }
@@ -90,11 +82,12 @@ class WaitForConnectionService : Service() {
         if (values.nearby) Nearby.getConnectionsClient(applicationContext).stopAdvertising()
         if (values.socket) {
             try {
-                serverSocket.close()
+                Values.runningServer.serverSocket.close()
             } catch (e: IOException) {
                 e.printStackTrace()
             }
         }
+        if(ServerService.instance==null)Values.appState  = Values.Companion.AppState.IDLE
         super.onDestroy()
     }
 
@@ -202,47 +195,48 @@ class WaitForConnectionService : Service() {
     }
 
     private fun startAdvertisingSocket() {
-        Thread {
-            try {
-                val url = URL("https://api6.my-ip.io/ip")
-                val `in` = BufferedReader(InputStreamReader(url.openStream()))
-                val line = `in`.readLine()
-                println("Online Ip : $line")
-                `in`.close()
-                serverSocket = ServerSocket(0)
-                println("Listening for incoming connections at port ${serverSocket.localPort}")
-                Values.socketPort = serverSocket.localPort
-                val user = IpData(
-                    EncryptionManager().encrypt(line, serverSocket.localPort.toString())
-                )
-                values.firestore.document(FirebaseAuth.getInstance().currentUser?.email!!).set(user).addOnSuccessListener {
-                    Values.appState = Values.Companion.AppState.WAITING
-                    Thread{
-                        while (true) {
-                            try {
-                                val socket = serverSocket.accept()
-                                EncryptionManager.fetchDynamicKey({
-                                    val name = EncryptionManager().decrypt(socket.getInputStream().bufferedReader().readLine(), it)
-                                    ServerService.instance!!.acceptConnection(
-                                        SocketEndpointInfo(
-                                            name,
-                                            socket
-                                        )
-                                    )
-                                }, {})
-                            }catch (e:Exception){
-                                Values.onSocketError(e)
-                            }
-                        }
-                    }.start()
-                }.addOnFailureListener {
-                    Values.onSocketError(it)
-                }
-            } catch (e: Exception) {
-                Values.onSocketError(e)
+        Values.runningServer = ServerThread(applicationContext).apply {
+            onReady = {
+                Values.socketPort = it
+                Values.appState = Values.Companion.AppState.WAITING
             }
+            onConnect = { senderThread ->
+                ServerService.instance!!.acceptConnection(
+                    SocketEndpointInfo(
+                        "1 device",senderThread
+                    )
+                )
 
-        }.start()
+            }
+            onDisconnect = {sender ->
+                Values.connectedSocketClients.remove(Values.connectedSocketClients.find { it.senderThread == sender })
+                if(Values.allClients.isEmpty())Values.appState = Values.Companion.AppState.WAITING
+            }
+            onReceive = { data: String, socket: Socket ->
+                PayloadPacket.fromEncString(data).also {
+                    when (it.payloadType) {
+                        PayloadPacket.Companion.PayloadType.DISCONNECT -> {
+                            socket.close()
+                            Values.connectedSocketClients.remove(Values.connectedSocketClients.find { it.senderThread.socket == socket })
+                            if(Values.allClients.isEmpty())Values.appState = Values.Companion.AppState.WAITING
+                        }
+                        PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> {}
+                        PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY -> {
+                            NotificationListener.sendReplyTo(
+                                it.data as NotificationReply,
+                                applicationContext
+                            )
+                        }
+                        else -> {}
+                    }
+                }
+            }
+            onError = {
+                it.printStackTrace()
+                Values.appState = Values.Companion.AppState.IDLE
+            }
+            start()
+        }
     }
 
     companion object {

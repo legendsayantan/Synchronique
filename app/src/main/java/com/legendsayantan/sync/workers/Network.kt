@@ -1,9 +1,13 @@
 package com.legendsayantan.sync.workers
 
 import android.content.Context
+import androidx.core.content.ContextCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.Payload
 import com.legendsayantan.sync.models.*
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.net.Socket
 
 /**
  * @author legendsayantan
@@ -33,15 +37,11 @@ class Network(var context: Context) {
                         nearby.sendPayload(client.id, pl)
                     }
                 }
-                if (values.socket)
-                    for (endpoint in Values.connectedSocketClients) {
-                        endpoint.socket.getOutputStream().write(bytes)
-                    }
+                if (values.socket) Values.runningServer.send(String(bytes))
             }
             Values.Companion.AppState.ACCESSING -> {
                 if (Values.connectedServer is SocketEndpointInfo) {
-                    (Values.connectedServer as SocketEndpointInfo).socket.getOutputStream()
-                        .write(bytes)
+                    (Values.connectedServer as SocketEndpointInfo).senderThread.push(String(bytes))
                 } else {
                     val pl = Payload.fromBytes(bytes)
                     nearby.sendPayload(Values.connectedServer!!.id, pl)
@@ -69,30 +69,29 @@ class Network(var context: Context) {
                     )
                     nearby.disconnectFromEndpoint(endpoint.id)
                 }
-                if (values.socket) for (endpoint in Values.connectedSocketClients) {
-                    endpoint.socket.getOutputStream().write(
-                        PayloadPacket.toEncBytes(
+                if (values.socket) {
+                    Values.runningServer.send(
+                        PayloadPacket.toEncString(
                             PayloadPacket(
                                 PayloadPacket.Companion.PayloadType.DISCONNECT,
                                 ByteArray(0)
                             )
                         )
                     )
-                    endpoint.socket.close()
+                    Values.runningServer.interrupt()
                 }
             }
             Values.Companion.AppState.ACCESSING -> {
                 if (Values.connectedServer is SocketEndpointInfo) {
-                    val socket = (Values.connectedServer as SocketEndpointInfo).socket
-                    socket.getOutputStream().write(
-                        PayloadPacket.toEncBytes(
+                    (Values.connectedServer as SocketEndpointInfo).senderThread.push(
+                        PayloadPacket.toEncString(
                             PayloadPacket(
                                 PayloadPacket.Companion.PayloadType.DISCONNECT,
                                 ByteArray(0)
                             )
                         )
                     )
-                    socket.close()
+                    (Values.connectedServer as SocketEndpointInfo).senderThread.socket.close()
                 } else {
                     nearby.sendPayload(
                         Values.connectedServer!!.id,
@@ -112,4 +111,5 @@ class Network(var context: Context) {
         }
         Nearby.getConnectionsClient(context).stopAllEndpoints()
     }
+
 }
