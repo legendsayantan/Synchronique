@@ -106,6 +106,7 @@ class HomeFragment() : Fragment() {
         //appStateUpdate()
         Values.onAppStateChanged = {
             values.onServerValueUpdate()
+            nearbySocketSelectionInitialise()
             appStateUpdate()
         }
 
@@ -152,6 +153,7 @@ class HomeFragment() : Fragment() {
             if (Values.appState == Values.Companion.AppState.IDLE) {
                 WaitForConnectionService.serverConfig = ServerConfig(values)
                 if (isAdded) requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled = true
+                if (isAdded) requireView().findViewById<CheckBox>(R.id.socketonline).isEnabled = true
                 println("serverConfig setup")
             } else if (Values.appState == Values.Companion.AppState.WAITING) {
 
@@ -171,6 +173,8 @@ class HomeFragment() : Fragment() {
             ).setDuration(250).start()
             requireView().findViewById<CheckBox>(R.id.multidevice).isEnabled =
                 (Values.appState == Values.Companion.AppState.IDLE)
+            requireView().findViewById<CheckBox>(R.id.socketonline).isEnabled =
+                (Values.appState == Values.Companion.AppState.IDLE)
             nearbySocketSelectionInitialise()
         }
         values.bind(requireView().findViewById(R.id.nearby), "nearby", true) {
@@ -181,8 +185,12 @@ class HomeFragment() : Fragment() {
         }
         values.bind(requireView().findViewById(R.id.socket), "socket") {
             nearbySocketSelectionInitialise()
+            TransitionManager.beginDelayedTransition(requireView() as ViewGroup?)
+            requireView().findViewById<View>(R.id.socketonline).visibility =
+                if (values.socket) View.VISIBLE else View.GONE
         }
         values.bind(requireView().findViewById(R.id.multidevice), "multidevice")
+        values.bind(requireView().findViewById(R.id.socketonline), "socketonline")
         values.bind(requireView().findViewById(R.id.media), "mediasync")
         values.bind(requireView().findViewById(R.id.media_client_only), "mediaclientonly")
         values.bind(requireView().findViewById(R.id.audio), "audiostream")
@@ -210,7 +218,7 @@ class HomeFragment() : Fragment() {
         values.onServerValueUpdate()
         requireView().findViewById<ImageView>(R.id.info).setOnClickListener {
             if ((Values.appState == Values.Companion.AppState.WAITING || Values.appState == Values.Companion.AppState.CONNECTED) && values.socket) {
-                setTicker("LAN ip ${Values.localIp} port ${Values.socketPort}", 5000)
+                setTicker("LAN ip ${Values.localIp} port ${Values.localport}", 5000)
             } else {
                 AskDialog(
                     requireActivity(),
@@ -434,9 +442,7 @@ class HomeFragment() : Fragment() {
                                 )
                             )
                         }
-                        if (values.socket && values.socketOnline && values.ngrokAuthToken.isEmpty()) {
-                            // TODO: ngrok login, auth and tunnel creation then call start()
-                        } else if(values.nearby || values.socket) start()
+                        if(values.nearby || values.socket) start()
                         else Values.appState = Values.Companion.AppState.IDLE
                         cancel()
                     }
@@ -543,6 +549,11 @@ class HomeFragment() : Fragment() {
     }
 
     fun nearbySocketSelectionInitialise(){
+        if(Values.appState!=Values.Companion.AppState.IDLE){
+            requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
+            requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
+            return
+        }
         if (values.nearby != values.socket) {
             if(values.nearby)requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
             if(values.socket)requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false

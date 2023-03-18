@@ -41,13 +41,13 @@ class ServerService : Service() {
             println("---------------------------------------------------------")
             ServerConfig(Values(applicationContext))
         } else WaitForConnectionService.serverConfig!!
+        val notification =
+            Notification.Builder(this, Notifications(applicationContext).server_channel)
+                .setContentTitle("Synchronique server is ready")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .build()
         if (serverConfig.clientConfig.audio && !serverConfig.audioMic) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val notification =
-                    Notification.Builder(this, Notifications(applicationContext).server_channel)
-                        .setContentTitle("Synchronique server is ready")
-                        .setSmallIcon(R.drawable.ic_launcher_foreground)
-                        .build()
                 startForeground(
                     1,
                     notification,
@@ -55,25 +55,31 @@ class ServerService : Service() {
                 )
             }
         } else {
-            val notification =
-                Notification.Builder(this, Notifications(applicationContext).server_channel)
-                    .setContentTitle("Synchronique server is ready")
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .build()
             startForeground(1, notification)
         }
+        NotificationListener.allowReply = serverConfig.clientConfig.noti&&serverConfig.notiReply
+        NotificationListener.shareNoti = serverConfig.clientConfig.noti
     }
 
     fun acceptConnection(endpointInfo: EndpointInfo) {
         if (endpointInfo is SocketEndpointInfo) {
-            endpointInfo.senderThread.push(PayloadPacket.toEncString(
-                PayloadPacket(
-                    PayloadPacket.Companion.PayloadType.CONFIG_PACKET,
-                    WaitForConnectionService.serverConfig!!.clientConfig
+            endpointInfo.senderThread.push(
+                PayloadPacket.toEncString(
+                    PayloadPacket(
+                        PayloadPacket.Companion.PayloadType.CONFIG_PACKET,
+                        WaitForConnectionService.serverConfig!!.clientConfig
+                    )
                 )
-            ))
+            )
             Values.connectedSocketClients.add(endpointInfo)
-            if (Values.allClients.size==1) initialiseServe()
+            if (Values.allClients.size == 1) initialiseServe()
+            NotificationListener.allNotifications.forEach {
+                endpointInfo.senderThread.push(
+                    PayloadPacket.toEncString(
+                        PayloadPacket(PayloadPacket.Companion.PayloadType.NOTIFICATION_PACKET, it)
+                    )
+                )
+            }
             serveDataTo(endpointInfo)
         } else {
             Nearby.getConnectionsClient(applicationContext)
@@ -131,7 +137,7 @@ class ServerService : Service() {
                             WaitForConnectionService::class.java
                         )
                     )
-                    if (Values.allClients.size==1) initialiseServe()
+                    if (Values.allClients.size == 1) initialiseServe()
                     //here comes the actual connection
                     Nearby.getConnectionsClient(applicationContext).sendPayload(
                         endpointInfo.id,
@@ -206,8 +212,6 @@ class ServerService : Service() {
 
         }
         if (serverConfig.clientConfig.noti) {
-            NotificationListener.allowReply = serverConfig.notiReply
-            NotificationListener.shareNoti = serverConfig.clientConfig.noti
             startForegroundService(Intent(applicationContext, NotificationListener::class.java))
         }
     }

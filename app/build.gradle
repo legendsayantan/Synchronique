@@ -49,7 +49,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     implementation 'com.github.ibrahimsn98:SmoothBottomBar:1.7.9'
     implementation 'com.github.fasilthottathil:SimpleChatView:1.0.0'
-    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'com.google.code.gson:gson:2.10'
     implementation 'org.jsoup:jsoup:1.15.4'
     //google stuff
     implementation platform('com.google.firebase:firebase-bom:30.4.1')
@@ -62,4 +62,5 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore'
     //nearby
     implementation 'com.google.android.gms:play-services-nearby:18.4.0'
+
 }

@@ -3,6 +3,9 @@ package com.legendsayantan.sync.workers
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import android.widget.Toast
 import androidx.core.app.NotificationManagerCompat
@@ -12,6 +15,7 @@ import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.ClientConfig
 import com.legendsayantan.sync.models.ServerConfig
 import java.util.*
+
 
 /**
  * @author legendsayantan
@@ -99,6 +103,56 @@ class PermissionManager() {
                     }
                 },2000, 1000)
                 return
+            }
+        }
+        if(Values(activity.applicationContext).socketOnline){
+            //ask for storage write permission
+            if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+                if(!Environment.isExternalStorageManager()) {
+                    Toast.makeText(activity, "Please grant storage permission", Toast.LENGTH_SHORT)
+                        .show()
+                    try {
+                        val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                        intent.addCategory("android.intent.category.DEFAULT")
+                        intent.data = Uri.parse(String.format("package:%s", activity.applicationContext.packageName))
+                        activity.startActivity(intent)
+                    } catch (e: Exception) {
+                        val intent = Intent()
+                        intent.action = Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+                        activity.startActivity(intent)
+                    }
+                    Timer().scheduleAtFixedRate(object : TimerTask() {
+                        override fun run() {
+                            if (Environment.isExternalStorageManager()) {
+                                cancel()
+                                ask(activity,serverConfig, callback)
+                            }
+                        }
+                    }, 2000, 1000)
+                    return
+                }
+            }else{
+                if(ContextCompat.checkSelfPermission(activity,android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(activity, "Please grant storage permission", Toast.LENGTH_SHORT)
+                        .show()
+                    activity.requestPermissions(
+                        arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                        10
+                    )
+                    Timer().scheduleAtFixedRate(object : TimerTask() {
+                        override fun run() {
+                            if (ContextCompat.checkSelfPermission(
+                                    activity,
+                                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            ) {
+                                cancel()
+                                ask(activity,serverConfig, callback)
+                            }
+                        }
+                    }, 2000, 1000)
+                    return
+                }
             }
         }
         callback()

@@ -114,10 +114,10 @@ class Values(context: Context) {
         set(value) {
             set("socketonline", value)
         }
-    var ngrokAuthToken
-        get() = prefs.getString("ngrokauthtoken", "") ?: ""
+    var emailConnection
+        get() = prefs.getBoolean("emailconnection", false)
         set(value) {
-            set("ngrokauthtoken", value)
+            set("emailconnection", value)
         }
     val networkStrategy
         get() = if (multiDevice) Strategy.P2P_STAR else Strategy.P2P_POINT_TO_POINT
@@ -192,7 +192,6 @@ class Values(context: Context) {
 
     //firestore
     val firestore = FirebaseFirestore.getInstance().collection("users")
-
     companion object {
         //constants
         var AUDIO_CONFIG = AudioFormat.CHANNEL_IN_STEREO
@@ -253,8 +252,9 @@ class Values(context: Context) {
 
         lateinit var runningServer : ServerThread
         var localIp = "none"
+        var localport: Int = 0
         var onlineIp = ""
-        var socketPort: Int = 0
+        var onlinePort = 0
         var onSocketError: (Exception) -> Unit = {}
 
         val allClients
@@ -277,5 +277,7 @@ class Values(context: Context) {
             CONNECTED,
             ACCESSING
         }
+
+        var ngrokClient: Any? = null
     }
 }

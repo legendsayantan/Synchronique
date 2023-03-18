@@ -9,7 +9,7 @@ import com.google.gson.Gson
 class PayloadPacket(var payloadType: PayloadType, var data: Any) {
     companion object {
         private val gson = Gson()
-        private fun toJSON(packet: PayloadPacket): String {
+        fun toJsonString(packet: PayloadPacket): String {
             return gson.toJson(packet)
         }
 
@@ -23,6 +23,7 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
                     PayloadType.TRIGGER_PACKET -> TriggerPacket::class.java
                     PayloadType.NOTIFICATION_PACKET -> NotificationData::class.java
                     PayloadType.NOTIFICATION_REPLY -> NotificationReply::class.java
+                    PayloadType.AUDIO_BUFFER -> AudioBufferPacket::class.java
                     PayloadType.DISCONNECT -> ByteArray::class.java
                     PayloadType.UNKNOWN -> ByteArray::class.java
                 }
@@ -38,6 +39,7 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
             TRIGGER_PACKET,
             NOTIFICATION_PACKET,
             NOTIFICATION_REPLY,
+            AUDIO_BUFFER,
             DISCONNECT,
         }
 
@@ -46,8 +48,9 @@ class PayloadPacket(var payloadType: PayloadType, var data: Any) {
         }
 
         fun toEncString(data: PayloadPacket):String{
-            return EncryptionManager().encrypt(toJSON(data), EncryptionManager.cachedKey!!)
+            return EncryptionManager().encrypt(toJsonString(data), EncryptionManager.cachedKey!!)
         }
+
 
         fun fromEncBytes(data: ByteArray): PayloadPacket {
             return fromEncString(String(data))

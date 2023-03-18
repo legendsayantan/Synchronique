@@ -228,6 +228,10 @@ class ClientService : Service() {
                 if (mediaWorker == null) return
                 mediaWorker!!.recvMediaAction(payloadPacket.data as MediaActionPacket)
             }
+            PayloadPacket.Companion.PayloadType.AUDIO_BUFFER -> {
+                if (audioWorker == null) return
+                audioWorker!!.recvAudioBufferPacket(payloadPacket.data as AudioBufferPacket)
+            }
             PayloadPacket.Companion.PayloadType.NOTIFICATION_PACKET -> {
                 val nData = payloadPacket.data as NotificationData
                 val search = notificationDataList.find { it.key == nData.key }

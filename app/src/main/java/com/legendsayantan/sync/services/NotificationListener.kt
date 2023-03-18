@@ -39,12 +39,18 @@ class NotificationListener : NotificationListenerService() {
         stopSelf()
     }
 
+    override fun onDestroy() {
+        actions.clear()
+        allNotifications.clear()
+        super.onDestroy()
+    }
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
         if(sbn==null||sentNotifications.contains(sbn.postTime))return@onNotificationPosted
         if (Values.appState == Values.Companion.AppState.CONNECTED && shareNoti) {
             NotificationData(sbn, allowReply).let { notificationData ->
                 network.push(notificationData)
+                allNotifications.add(notificationData)
                 sentNotifications.add(sbn.postTime)
                 if (allowReply && (sbn.notification.actions != null) && (sbn.notification.actions.find {
                         it.title.toString().lowercase().trim() == "reply"
@@ -69,6 +75,8 @@ class NotificationListener : NotificationListenerService() {
         var shareNoti: Boolean = false
         var allowReply: Boolean = false
         private val actions = ArrayList<ActionStore>()
+        val allNotifications = ArrayList<NotificationData>()
+
         fun sendReplyTo(notificationReply: NotificationReply,applicationContext: Context) {
             println(actions.toArray())
             actions.find { it.key == notificationReply.key }?.action?.sendReply(applicationContext, notificationReply.reply)

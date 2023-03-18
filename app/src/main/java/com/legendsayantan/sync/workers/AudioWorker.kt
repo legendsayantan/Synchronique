@@ -15,10 +15,13 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.Payload
 import com.legendsayantan.sync.R
+import com.legendsayantan.sync.models.AudioBufferPacket
 import com.legendsayantan.sync.models.EndpointInfo
+import com.legendsayantan.sync.models.PayloadPacket
 import com.legendsayantan.sync.models.SocketEndpointInfo
 import com.legendsayantan.sync.services.ClientService
 import java.io.IOException
+import java.io.InputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 
@@ -28,29 +31,35 @@ import java.io.PipedOutputStream
 /**
  * This worker handles Audio Stream Payloads
  */
-class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var sampleRate : Int) {
+class AudioWorker(
+    var context: Context,
+    var mediaProjection: MediaProjection?,
+    var sampleRate: Int
+) {
     lateinit var audioRecord: AudioRecord
-    private lateinit var transferThread: Thread
+    private var transferThread: Thread? = null
     lateinit var audioStream: PipedInputStream
     lateinit var audioOutputStream: PipedOutputStream
-    var clientele = object : ArrayList<EndpointInfo>(){
+    var clientele = object : ArrayList<EndpointInfo>() {
         override fun add(element: EndpointInfo): Boolean {
             val x = super.add(element)
-            if(element is SocketEndpointInfo){
+            if (element is SocketEndpointInfo) {
 
-            }else{
-                Nearby.getConnectionsClient(context).sendPayload(element.id,Payload.fromStream(audioStream))
+            } else {
+                Nearby.getConnectionsClient(context)
+                    .sendPayload(element.id, Payload.fromStream(audioStream))
             }
             return x
         }
     }
-
     init {
         try {
             audioStream = PipedInputStream()
             audioOutputStream = PipedOutputStream(audioStream)
-        } catch (_: IOException) { }
+        } catch (_: IOException) {
+        }
     }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     fun startAudioStream() {
         println("start audio stream")
@@ -63,8 +72,8 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
             .setChannelMask(Values.AUDIO_CONFIG)
             .build()
 
-
-        val bufferSizeInBytes = 2 * AudioRecord.getMinBufferSize(sampleRate, Values.AUDIO_CONFIG, Values.AUDIO_FORMAT)
+        val bufferSizeInBytes =
+            2 * AudioRecord.getMinBufferSize(sampleRate, Values.AUDIO_CONFIG, Values.AUDIO_FORMAT)
 
         if (ActivityCompat.checkSelfPermission(
                 context,
@@ -87,21 +96,24 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
                 val result = audioRecord.read(buffer, 0, buffer.size)
                 try {
                     audioOutputStream.write(buffer, 0, result)
+                    sendAudioSocketBuffer(buffer)
                     errorCount--
                 } catch (e: Exception) {
                     errorCount++
-                    if(errorCount > 10) {
+                    if (errorCount > 10) {
                         try {
                             audioStream = PipedInputStream()
                             audioOutputStream = PipedOutputStream(audioStream)
-                        } catch (_: IOException) { }
+                        } catch (_: IOException) {
+                        }
                     }
                 }
             }
         }
-        transferThread.start()
+        transferThread?.start()
     }
-    fun startAudioRecord(){
+
+    fun startAudioRecord() {
         println("start audio record")
         val bufferSize = 2 * AudioRecord.getMinBufferSize(
             sampleRate,
@@ -131,31 +143,58 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
                     val result = audioRecord.read(buffer, 0, buffer.size)
                     try {
                         audioOutputStream.write(buffer, 0, result)
+                        sendAudioSocketBuffer(buffer)
                         errorCount--
                     } catch (e: Exception) {
                         errorCount++
-                        if(errorCount > 10) {
-                            Nearby.getConnectionsClient(context).stopAllEndpoints()
-                            val notification = Notification.Builder(context, Notifications(context).connection_channel)
-                                .setContentTitle("Audio Stream (Mic)")
-                                .setContentText("Connection timed out!")
-                                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                                .build()
-                            val manager = (context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager)
-                            manager.notify(Values.REQUEST_CODE_CAPTURE_PERM, notification)
-                            break
+                        if (errorCount > 10) {
+                            try {
+                                audioStream = PipedInputStream()
+                                audioOutputStream = PipedOutputStream(audioStream)
+                            } catch (_: IOException) {
+                            }
                         }
                     }
 
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
-                transferThread.interrupt()
+                this.transferThread?.interrupt()
             }
         }
-        transferThread.start()
+        transferThread?.start()
     }
+    fun sendAudioSocketBuffer(data: ByteArray) = if (Values(context).socket) {
+        Values.connectedSocketClients.forEach {
+            it.senderThread.push(
+                PayloadPacket.toJsonString(
+                    PayloadPacket(
+                        PayloadPacket.Companion.PayloadType.AUDIO_BUFFER,
+                        AudioBufferPacket(data)
+                    )
+                )
+            )
+        }
+    } else { }
     fun playAudioFromPayload(payload: Payload) {
+        val inputStream = payload.asStream()!!.asInputStream()
+        playAudioFromInputStream(inputStream)
+    }
+
+    fun initialiseSocketAudioPlayer(){
+        playAudioFromInputStream(audioStream)
+    }
+    fun recvAudioBufferPacket(audioBufferPacket: AudioBufferPacket){
+        try {
+            audioOutputStream.write(audioBufferPacket.data)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        if(transferThread!=null){
+            initialiseSocketAudioPlayer()
+        }
+    }
+    private fun playAudioFromInputStream(inputStream: InputStream){
         val bufferSize = AudioTrack.getMinBufferSize(
             ClientService.clientConfig.audioSample,
             Values.AUDIO_CONFIG,
@@ -171,55 +210,57 @@ class AudioWorker(var context: Context,var mediaProjection: MediaProjection?,var
         )
         val buffer = ByteArray(bufferSize)
         var length: Int
-        val virtualizer = Virtualizer(0,audioTrack.audioSessionId)
+        val virtualizer = Virtualizer(0, audioTrack.audioSessionId)
         audioTrack.play()
+        //using transferThread as audio player thread
         transferThread = Thread {
             try {
-                payload.asStream()!!.asInputStream().use { inputStream ->
-                    while (inputStream.read(buffer).also { length = it } > 0) {
-                        audioTrack.write(buffer, 0, length)
-                    }
+                while (inputStream.read(buffer).also { length = it } > 0) {
+                    audioTrack.write(buffer, 0, length)
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
             }
         }
         onVolumeChanged = {
-            audioTrack.setVolume(volume/100f)
-            if(it>100){
+            audioTrack.setVolume(volume / 100f)
+            if (it > 100) {
                 virtualizer.enabled = true
-                virtualizer.setStrength(((it-100)*100).toShort())
+                virtualizer.setStrength(((it - 100) * 100).toShort())
                 audioTrack.attachAuxEffect(virtualizer.id)
                 audioTrack.setAuxEffectSendLevel(1f)
                 audioTrack.setVolume(1f)
-            }else{
-                if (virtualizer.enabled)virtualizer.enabled = false
+            } else {
+                if (virtualizer.enabled) virtualizer.enabled = false
             }
         }
-        transferThread.start()
+        transferThread?.start()
     }
 
-    fun kill(){
-        transferThread.interrupt()
+
+
+    fun kill() {
+        transferThread?.interrupt()
         try {
             audioRecord.stop()
             audioRecord.release()
-        }catch (e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
         }
         try {
             audioOutputStream.close()
             audioStream.close()
-        }catch (e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
-    companion object{
+
+    companion object {
         var volume: Int = 100
-        set(value) {
-            field = value
-            onVolumeChanged(value)
-        }
-        var onVolumeChanged : (Int) -> Unit = {}
+            set(value) {
+                field = value
+                onVolumeChanged(value)
+            }
+        var onVolumeChanged: (Int) -> Unit = {}
     }
 }

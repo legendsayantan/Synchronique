@@ -16,6 +16,7 @@ import com.legendsayantan.sync.workers.socket.ServerThread
 import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.*
+import com.legendsayantan.sync.workers.Network
 import com.legendsayantan.sync.workers.Notifications
 import com.legendsayantan.sync.workers.Values
 import java.io.IOException
@@ -87,7 +88,7 @@ class WaitForConnectionService : Service() {
                 e.printStackTrace()
             }
         }
-        if(ServerService.instance==null)Values.appState  = Values.Companion.AppState.IDLE
+        if (ServerService.instance == null) Values.appState = Values.Companion.AppState.IDLE
         super.onDestroy()
     }
 
@@ -197,20 +198,21 @@ class WaitForConnectionService : Service() {
     private fun startAdvertisingSocket() {
         Values.runningServer = ServerThread(applicationContext).apply {
             onReady = {
-                Values.socketPort = it
+                Values.localport = it
                 Values.appState = Values.Companion.AppState.WAITING
+                if (values.socketOnline) Network(context).createNgrokTunnel()
             }
             onConnect = { senderThread ->
                 ServerService.instance!!.acceptConnection(
                     SocketEndpointInfo(
-                        "1 device",senderThread
+                        "1 device", senderThread
                     )
                 )
 
             }
-            onDisconnect = {sender ->
+            onDisconnect = { sender ->
                 Values.connectedSocketClients.remove(Values.connectedSocketClients.find { it.senderThread == sender })
-                if(Values.allClients.isEmpty())Values.appState = Values.Companion.AppState.WAITING
+                if (Values.allClients.isEmpty()) Values.appState = Values.Companion.AppState.WAITING
             }
             onReceive = { data: String, socket: Socket ->
                 PayloadPacket.fromEncString(data).also {
@@ -218,7 +220,8 @@ class WaitForConnectionService : Service() {
                         PayloadPacket.Companion.PayloadType.DISCONNECT -> {
                             socket.close()
                             Values.connectedSocketClients.remove(Values.connectedSocketClients.find { it.senderThread.socket == socket })
-                            if(Values.allClients.isEmpty())Values.appState = Values.Companion.AppState.WAITING
+                            if (Values.allClients.isEmpty()) Values.appState =
+                                Values.Companion.AppState.WAITING
                         }
                         PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> {}
                         PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY -> {

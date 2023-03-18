@@ -1,13 +1,12 @@
 package com.legendsayantan.sync.workers
 
 import android.content.Context
-import androidx.core.content.ContextCompat
+import android.content.Intent
+import android.widget.Toast
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.Payload
 import com.legendsayantan.sync.models.*
-import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.net.Socket
+
 
 /**
  * @author legendsayantan
@@ -25,6 +24,7 @@ class Network(var context: Context) {
                     is TriggerPacket -> PayloadPacket.Companion.PayloadType.TRIGGER_PACKET
                     is NotificationData -> PayloadPacket.Companion.PayloadType.NOTIFICATION_PACKET
                     is NotificationReply -> PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY
+                    is AudioBufferPacket -> PayloadPacket.Companion.PayloadType.AUDIO_BUFFER
                     else -> PayloadPacket.Companion.PayloadType.UNKNOWN
                 }, data
             )
@@ -111,5 +111,16 @@ class Network(var context: Context) {
         }
         Nearby.getConnectionsClient(context).stopAllEndpoints()
     }
-
+    fun createNgrokTunnel() {
+        val launchIntent = Intent()
+        launchIntent.action = "com.legendsayantan.ngrokclient.START_TUNNEL"
+        launchIntent.putExtra("protocol", "tcp")
+        launchIntent.putExtra("port", Values.localport)
+        launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        try {
+            context.startActivity(launchIntent)
+        }catch (e: Exception) {
+            Toast.makeText(context, "Ngrok client not installed, failed to tunnel through internet.", Toast.LENGTH_SHORT).show()
+        }
+    }
 }

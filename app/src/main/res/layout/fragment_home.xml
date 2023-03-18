@@ -202,7 +202,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="25dp"
                         android:text="Multi-connection Nearby" />
-
+                    <CheckBox
+                        android:id="@+id/socketonline"
+                        android:layout_width="match_parent"
+                        android:layout_height="25dp"
+                        android:text="Tunnel through Internet" />
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
