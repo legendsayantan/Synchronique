@@ -326,9 +326,7 @@ class ConnectionFragment : Fragment() {
             "allowmediasync",
             true,
             serverValue = false
-        ) {
-            MediaWorker.clientSyncToServer = values.allowMediaSync
-        }
+        )
         values.bind(requireView().findViewById(R.id.volumeBar), "audiovolume", 100, false) {
             AudioWorker.volume = values.audioVolume
             requireView().findViewById<TextView>(R.id.volumeText).text =

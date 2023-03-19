@@ -38,6 +38,7 @@ class MediaWorker(var context: Context) {
     private var network : Network = Network(context)
     var count = 0
     var timer = Timer()
+    val values = Values(context)
     fun startMediaControls() {
         val playPauseIntent = Intent(context, ServerService::class.java)
         playPauseIntent.action = "play"
@@ -210,7 +211,8 @@ class MediaWorker(var context: Context) {
                 NotificationListener::class.java
             )
         )
-        if (controllers.size == 0) {
+        var recentController: MediaController? = null
+        if (controllers.size == 0 && values.allowMediaSync) {
             val notification = Notification.Builder(context, Notifications(context).client_channel)
                 .setContentTitle("Media Sync")
                 .setContentText("Play media on this device to sync.")
@@ -220,15 +222,14 @@ class MediaWorker(var context: Context) {
             val manager =
                 (context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager)
             manager.notify(3, notification)
-            return
         }
-        val recentController = controllers[0]
-        if(clientSyncToServer)mediaSyncPacket.timeStamp?.let { recentController.transportControls.seekTo(it) }
+        if(controllers.size > 0)recentController = controllers[0]
+        if(values.allowMediaSync)mediaSyncPacket.timeStamp?.let { recentController?.transportControls?.seekTo(it) }
         val noti =
             (if (mediaSyncPacket.isPlaying == true) "Playing : " else "Paused : ") + mediaSyncPacket.title
         val noti2 = "${mediaSyncPacket.artist}"
         if (mediaSyncPacket.isPlaying == true) {
-            if(clientSyncToServer)recentController.transportControls.play()
+            if(values.allowMediaSync)recentController?.transportControls?.play()
             timer.scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
                     if (count * 1000 >= mediaSyncPacket.duration?.toInt()!! || mediaSyncPacket.isPlaying == false) {
@@ -255,10 +256,10 @@ class MediaWorker(var context: Context) {
                     manager.notify(1, notification)
                     count++
                 }
-            }, 3, 1000)
+            }, 0, 1000)
         } else {
-            if(clientSyncToServer){
-                recentController.transportControls.pause()
+            if(values.allowMediaSync){
+                recentController?.transportControls?.pause()
                 val intent = Intent(Intent.ACTION_MEDIA_BUTTON)
                 intent.putExtra(
                     Intent.EXTRA_KEY_EVENT,
@@ -285,7 +286,6 @@ class MediaWorker(var context: Context) {
     }
     companion object{
         var Notification_Title: String = "Media Service"
-        var clientSyncToServer:Boolean = true
     }
 
 }

@@ -555,8 +555,8 @@ class HomeFragment() : Fragment() {
             return
         }
         if (values.nearby != values.socket) {
-            if(values.nearby)requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = false
-            if(values.socket)requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = false
+            requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = !values.nearby
+            requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = !values.socket
         } else {
             requireView().findViewById<CompoundButton>(R.id.nearby).isEnabled = true
             requireView().findViewById<CompoundButton>(R.id.socket).isEnabled = true

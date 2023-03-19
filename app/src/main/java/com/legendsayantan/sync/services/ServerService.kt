@@ -14,8 +14,7 @@ import com.google.android.gms.nearby.connection.*
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.*
 import com.legendsayantan.sync.workers.*
-import java.io.OutputStream
-import java.io.PrintWriter
+import java.util.*
 
 class ServerService : Service() {
 
@@ -23,8 +22,8 @@ class ServerService : Service() {
     lateinit var serverConfig: ServerConfig
     lateinit var mediaProjection: MediaProjection
 
-    lateinit var mediaWorker: MediaWorker
-    lateinit var audioWorker: AudioWorker
+    private var mediaWorker: MediaWorker? = null
+    private var audioWorker: AudioWorker? = null
     lateinit var network: Network
     override fun onBind(intent: Intent): IBinder {
         return null!!
@@ -80,7 +79,7 @@ class ServerService : Service() {
                     )
                 )
             }
-            serveDataTo(endpointInfo)
+            serveDataOrWait(endpointInfo)
         } else {
             Nearby.getConnectionsClient(applicationContext)
                 .acceptConnection(endpointInfo.id, object : PayloadCallback() {
@@ -137,7 +136,6 @@ class ServerService : Service() {
                             WaitForConnectionService::class.java
                         )
                     )
-                    if (Values.allClients.size == 1) initialiseServe()
                     //here comes the actual connection
                     Nearby.getConnectionsClient(applicationContext).sendPayload(
                         endpointInfo.id,
@@ -153,7 +151,8 @@ class ServerService : Service() {
                         println("----------- appstate ------------")
                         println(Values.appState)
                         Values.connectedNearbyClients.add(endpointInfo)
-                        serveDataTo(endpointInfo)
+                        if (Values.allClients.size == 1) initialiseServe()
+                        serveDataOrWait(endpointInfo)
                     }
                 }
                 .addOnFailureListener {
@@ -169,7 +168,7 @@ class ServerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        intent?.action?.let { mediaWorker.onMediaAction(it) }
+        intent?.action?.let { mediaWorker?.onMediaAction(it) }
         return START_STICKY
     }
 
@@ -177,7 +176,7 @@ class ServerService : Service() {
         network.disconnect()
         stopService(Intent(applicationContext, NotificationListener::class.java))
         try {
-            audioWorker.kill()
+            audioWorker?.kill()
         } catch (_: UninitializedPropertyAccessException) {
         }
         Values.appState = Values.Companion.AppState.IDLE
@@ -189,14 +188,14 @@ class ServerService : Service() {
         println("initialise Serve")
         if (serverConfig.clientConfig.media) {
             mediaWorker = MediaWorker(applicationContext)
-            mediaWorker.startMediaControls()
-            if (!values.mediaClientOnly) mediaWorker.syncTo()
+            mediaWorker?.startMediaControls()
+            if (!values.mediaClientOnly) mediaWorker?.syncTo()
         }
         if (serverConfig.clientConfig.audio) {
             if (serverConfig.audioMic) {
                 audioWorker =
                     AudioWorker(applicationContext, null, serverConfig.clientConfig.audioSample)
-                audioWorker.startAudioRecord()
+                audioWorker?.startAudioRecord()
             } else {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     audioWorker = AudioWorker(
@@ -204,7 +203,7 @@ class ServerService : Service() {
                         mediaProjectionManager.getMediaProjection(resultCode, data),
                         serverConfig.clientConfig.audioSample
                     )
-                    audioWorker.startAudioStream()
+                    audioWorker?.startAudioStream()
                 }
             }
         }
@@ -216,9 +215,19 @@ class ServerService : Service() {
         }
     }
 
-    private fun serveDataTo(endpointInfo: EndpointInfo) {
+    private fun serveDataOrWait(endpointInfo: EndpointInfo) {
         if (serverConfig.clientConfig.audio) {
-            audioWorker.clientele.add(endpointInfo)
+            if(audioWorker!=null) audioWorker!!.clientele.add(endpointInfo)
+            else{
+                Timer().schedule(object : TimerTask() {
+                    override fun run() {
+                        if(audioWorker!=null) {
+                            audioWorker!!.clientele.add(endpointInfo)
+                            cancel()
+                        }
+                    }
+                }, 1000)
+            }
         }
     }
 

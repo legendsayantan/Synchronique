@@ -221,7 +221,7 @@ class Values(context: Context) {
             override fun add(element: EndpointInfo): Boolean {
                 val x = super.add(element)
                 onNearbyClientAdded()
-                if (size > 1) appState = AppState.CONNECTED
+                if (size > 0) appState = AppState.CONNECTED
                 return x
             }
 

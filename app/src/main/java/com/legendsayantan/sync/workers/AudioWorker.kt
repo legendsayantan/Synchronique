@@ -164,7 +164,7 @@ class AudioWorker(
         }
         transferThread?.start()
     }
-    fun sendAudioSocketBuffer(data: ByteArray) = if (Values(context).socket) {
+    private fun sendAudioSocketBuffer(data: ByteArray) = if (Values(context).socket) {
         Values.connectedSocketClients.forEach {
             it.senderThread.push(
                 PayloadPacket.toJsonString(
