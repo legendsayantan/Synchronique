@@ -226,7 +226,7 @@ class AudioWorker(
             audioTrack.setVolume(volume / 100f)
             if (it > 100) {
                 virtualizer.enabled = true
-                virtualizer.setStrength(((it - 100) * 100).toShort())
+                virtualizer.setStrength(((it - 100) * 1000).toShort())
                 audioTrack.attachAuxEffect(virtualizer.id)
                 audioTrack.setAuxEffectSendLevel(1f)
                 audioTrack.setVolume(1f)

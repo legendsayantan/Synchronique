@@ -4,6 +4,7 @@ import EncryptionManager
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.widget.Toast
@@ -214,7 +215,7 @@ class ClientService : Service() {
             stopSelf()
         }
     }
-    fun processPayloadPacket(payloadPacket: PayloadPacket){
+    private fun processPayloadPacket(payloadPacket: PayloadPacket){
         when (payloadPacket.payloadType) {
             PayloadPacket.Companion.PayloadType.CONFIG_PACKET -> {
                 clientConfig = payloadPacket.data as ClientConfig
@@ -243,6 +244,9 @@ class ClientService : Service() {
                     notificationDataList[index] = nData
                 }
                 onNotificationUpdated(notificationDataList[index], index)
+                if (postNoti) {
+                    postNotification(notificationDataList[index],index)
+                }
             }
             else -> {}
         }
@@ -274,10 +278,27 @@ class ClientService : Service() {
             }
             onError = {
                 if (BuildConfig.DEBUG) it.printStackTrace()
+                println("$SERVER_IP_ADDRESS  $PORT_NUMBER")
                 Toast.makeText(applicationContext, "Could not connect.", Toast.LENGTH_SHORT).show()
             }
             start()
         }
+    }
+    fun postNotification(notificationData: NotificationData,index :Int) {
+        val builder = Notification.Builder(
+            applicationContext,
+            Notifications(applicationContext).client_channel
+        )
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(notificationData.title)
+            .setContentText(notificationData.text)
+            .setSubText(notificationData.app_id + if (notificationData.subtext.isNullOrEmpty()) "" else " · " + notificationData.subtext)
+            .setWhen(notificationData.time)
+            .setShowWhen(true)
+        (applicationContext.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager).notify(
+            index,
+            builder.build()
+        )
     }
     companion object {
         lateinit var instance: ClientService

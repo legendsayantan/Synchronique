@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -14,6 +15,7 @@ import com.legendsayantan.sync.MainActivity
 import com.legendsayantan.sync.R
 import com.legendsayantan.sync.models.ClientConfig
 import com.legendsayantan.sync.models.ServerConfig
+import com.legendsayantan.sync.services.ControlViaAccessibility
 import java.util.*
 
 
@@ -80,6 +82,40 @@ class PermissionManager() {
         }
         if(serverConfig.clientConfig.trigger){
             //ask for accessibility service
+            if (!isAccessibilityServiceEnabled(activity,ControlViaAccessibility::class.java.name)) {
+                activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                Toast.makeText(
+                    activity,
+                    "Please enable accessibility service for ${activity.getString(R.string.app_name)}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                Timer().scheduleAtFixedRate(object : TimerTask() {
+                    override fun run() {
+                        if (isAccessibilityServiceEnabled(activity, ControlViaAccessibility::class.java.name)) {
+                            cancel()
+                            activity.runOnUiThread { ask(activity,serverConfig,callback) }
+                        }
+                    }
+                },2000, 1000)
+                return
+            }else{
+                //ask for SYSTEM_ALERT_WINDOW permission
+                if (!Settings.canDrawOverlays(activity)) {
+                    Toast.makeText(activity, "Please grant overlay permission", Toast.LENGTH_SHORT)
+                        .show()
+                    activity.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+                    Timer().scheduleAtFixedRate(object : TimerTask() {
+                        override fun run() {
+                            if (Settings.canDrawOverlays(activity)) {
+                                cancel()
+                                activity.runOnUiThread { ask(activity,serverConfig,callback) }
+                            }
+                        }
+                    }, 2000, 1000)
+                    return
+                }
+            }
+
         }
         if(serverConfig.clientConfig.noti){
             //ask for notification permission
@@ -192,5 +228,13 @@ class PermissionManager() {
             //nothing required
         }
         callback()
+    }
+    fun isAccessibilityServiceEnabled(context: Context, accessibilityServiceName: String): Boolean {
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        val enabledServices = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        return enabledServices?.contains(accessibilityServiceName) == true
     }
 }

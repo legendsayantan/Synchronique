@@ -12,6 +12,8 @@
         android:id="@+id/connectCard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:visibility="gone"
+
         android:orientation="vertical">
 
         <com.google.android.material.card.MaterialCardView
@@ -80,28 +82,102 @@
                 android:layout_marginVertical="15dp"
                 android:layout_marginHorizontal="25dp"
                 android:orientation="vertical">
-                <EditText
-                    android:id="@+id/email"
+
+                <TextView
+                    android:id="@+id/textView9"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:ems="10"
-                    android:inputType="textEmailAddress"
-                    android:hint="Ip address or Email" />
+                    android:text="Connect through tunnel" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginTop="10dp"
+                    android:layout_height="wrap_content"
                     android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:text="tcp://" />
                     <EditText
-                        android:id="@+id/port"
+                        android:id="@+id/ngrokLink"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ems="5"
+                        android:inputType="textEmailAddress"
+                        android:hint="0.tcp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:text=".ngrok.io : " />
+
+                    <EditText
+                        android:id="@+id/ngrokPort"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:ems="5"
                         android:layout_weight="1"
-                        android:hint="port"
+                        android:hint="8080"
                         android:layout_marginEnd="15dp"
                         android:inputType="number" />
+
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/textView10"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Connect through local network" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/textView6"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:text="192.168." />
+                    <EditText
+                        android:id="@+id/localIp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ems="5"
+                        android:inputType="number"
+                        android:hint="82.52" />
+
+                    <TextView
+                        android:id="@+id/textView8"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:text=" : " />
+
+                    <EditText
+                        android:id="@+id/ipPort"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ems="5"
+                        android:layout_weight="1"
+                        android:hint="8080"
+                        android:layout_marginEnd="15dp"
+                        android:inputType="number" />
+
+
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/startOnlineSearch"
                         android:layout_width="wrap_content"
@@ -110,7 +186,7 @@
                         app:cardCornerRadius="15dp"
                         app:strokeColor="?attr/colorPrimary"
                         app:strokeWidth="3dp"
-                        android:layout_marginEnd="15dp"
+                        android:layout_marginEnd="25dp"
                         android:layout_height="match_parent">
 
                         <ImageView
@@ -272,7 +348,7 @@
 
     <ScrollView
         android:id="@+id/accessCard"
-        android:visibility="gone"
+        android:visibility="visible"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -431,7 +507,8 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
                                 android:paddingHorizontal="25dp"
-                                android:paddingVertical="15dp"
+                                android:paddingTop="15dp"
+                                android:paddingBottom="10dp"
                                 android:gravity="center"
                                 android:orientation="horizontal">
 
@@ -457,7 +534,7 @@
                                 <androidx.appcompat.widget.SwitchCompat
                                     android:id="@+id/mediaSwitch"
                                     android:layout_width="match_parent"
-                                    android:layout_height="35dp"
+                                    android:layout_height="25dp"
                                     android:checked="true"
                                     android:layout_marginHorizontal="25dp"
                                     android:layout_marginBottom="15dp"
@@ -525,7 +602,7 @@
                                 android:layout_weight="1"
                                 android:min="0"
                                 android:progress="100"
-                                android:max="150"/>
+                                android:max="120"/>
 
                             <TextView
                                 android:id="@+id/volumeText"
@@ -570,40 +647,136 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="10dp"
-                                android:src="@drawable/baseline_camera_24" />
+                                android:scaleX="0.9"
+                                android:scaleY="0.9"
+                                android:src="@drawable/baseline_mouse_24" />
 
                             <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Remote Trigger"
+                                android:text="Remote Control"
                                 android:textColor="?attr/colorPrimary"
                                 android:textSize="15sp" />
                         </LinearLayout>
                         <LinearLayout
                             android:gravity="center"
                             android:layout_width="match_parent"
-                            android:paddingBottom="15dp"
+                            android:paddingBottom="10dp"
+                            android:orientation="vertical"
                             android:layout_height="wrap_content">
-
-                            <include layout="@layout/layout_counter"
-                                android:id="@+id/counter"
-                                android:layout_width="wrap_content"
-                                android:layout_marginEnd="25dp"
-                                android:layout_height="wrap_content" />
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_marginHorizontal="25dp"
+                                android:layout_marginBottom="5dp"
+                                android:layout_height="wrap_content">
+                                <TextView
+                                    android:text="Sensitivity"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent"/>
+                                <SeekBar
+                                    android:id="@+id/sensitivitySlider"
+                                    android:layout_weight="1"
+                                    android:min="50"
+                                    android:progress="100"
+                                    android:max="200"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent"/>
+                                <TextView
+                                    android:id="@+id/currentSens"
+                                    android:text="100"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent"/>
+                            </LinearLayout>
                             <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/touchpad"
+                                android:layout_width="match_parent"
+                                android:layout_marginHorizontal="15dp"
                                 app:cardCornerRadius="15dp"
-                                app:cardBackgroundColor="?attr/backgroundColor"
-                                app:strokeColor="?attr/colorPrimary"
-                                app:strokeWidth="2dp"
-                                android:layout_width="45dp"
-                                android:layout_height="45dp">
-                                <ImageView
+                                android:layout_height="150dp">
+                                <com.google.android.material.textview.MaterialTextView
+                                    android:gravity="center"
+                                    android:text="touchpad"
+                                    android:alpha="0.5"
                                     android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:layout_margin="10dp"
-                                    android:src="@drawable/baseline_camera_24"/>
+                                    android:layout_height="match_parent"/>
                             </com.google.android.material.card.MaterialCardView>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_marginHorizontal="25dp"
+                                android:gravity="center"
+                                android:layout_height="wrap_content">
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/recentsBtn"
+                                    android:layout_width="wrap_content"
+                                    android:layout_margin="5dp"
+                                    android:layout_height="match_parent">
+                                    <ImageView
+                                        android:layout_margin="7dp"
+                                        android:src="@drawable/baseline_crop_square_24"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"/>
+                                </com.google.android.material.card.MaterialCardView>
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/homeBtn"
+                                    android:layout_width="wrap_content"
+                                    android:layout_margin="5dp"
+                                    android:layout_height="match_parent">
+                                    <ImageView
+                                        android:layout_margin="7dp"
+                                        android:src="@drawable/outline_home_24"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"/>
+                                </com.google.android.material.card.MaterialCardView>
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/backBtn"
+                                    android:layout_margin="5dp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent">
+                                    <ImageView
+                                        android:layout_margin="7dp"
+                                        android:src="@drawable/baseline_arrow_back_ios_24"
+                                        android:layout_width="wrap_content"
+                                        android:translationX="5dp"
+                                        android:layout_height="wrap_content"/>
+                                </com.google.android.material.card.MaterialCardView>
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/notiBtn"
+                                    android:layout_margin="5dp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent">
+                                    <ImageView
+                                        android:layout_margin="7dp"
+                                        android:src="@drawable/outline_notifications_24"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"/>
+                                </com.google.android.material.card.MaterialCardView>
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/screenshotBtn"
+                                    android:layout_margin="5dp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent">
+                                    <ImageView
+                                        android:layout_margin="7dp"
+                                        android:src="@drawable/outline_screenshot_24"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"/>
+                                </com.google.android.material.card.MaterialCardView>
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/powerBtn"
+                                    android:layout_margin="5dp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent">
+                                    <ImageView
+                                        android:layout_margin="7dp"
+                                        android:src="@drawable/baseline_power_settings_new_24"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"/>
+                                </com.google.android.material.card.MaterialCardView>
+
+                            </LinearLayout>
+
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -656,7 +829,7 @@
                             <androidx.appcompat.widget.SwitchCompat
                                 android:id="@+id/realtimeNoti"
                                 android:layout_width="match_parent"
-                                android:layout_height="35dp"
+                                android:layout_height="25dp"
                                 android:layout_marginHorizontal="25dp"
                                 android:text="Get realtime notifications" />
 

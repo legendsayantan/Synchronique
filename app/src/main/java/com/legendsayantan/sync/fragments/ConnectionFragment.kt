@@ -1,14 +1,23 @@
 package com.legendsayantan.sync.fragments
 
+import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
+import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME
+import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS
+import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG
+import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RECENTS
+import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.transition.TransitionManager
-import android.util.Patterns
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -99,55 +108,30 @@ class ConnectionFragment : Fragment() {
         onlineLookupButton = requireView().findViewById(R.id.onlineCard)
         onlineLookupButton.findViewById<MaterialCardView>(R.id.startOnlineSearch)
             .setOnClickListener {
-                val editText = onlineLookupButton.findViewById<EditText>(R.id.email)
-                if (editText.text.toString().isEmpty()) return@setOnClickListener
+                val ip = onlineLookupButton.findViewById<EditText>(R.id.localIp)
+                val ngrokIp = onlineLookupButton.findViewById<EditText>(R.id.ngrokLink)
+                if (ip.text.toString().isEmpty() && ngrokIp.text.toString()
+                        .isEmpty()
+                ) return@setOnClickListener
                 when (Values.appState) {
                     Values.Companion.AppState.IDLE -> {
-                        val portText = onlineLookupButton.findViewById<EditText>(R.id.port)
-                        val text = editText.text.toString()
-                        if (Patterns.EMAIL_ADDRESS.matcher(text).matches()) {
-                            //email
-//                        values.firestore.document(text)
-//                            .get()
-//                            .addOnSuccessListener { document ->
-//                                if (document != null) {
-//                                    val value = document.data?.get("ip") as String
-//                                    Thread{
-//                                        try {
-//                                            val ip = EncryptionManager().decrypt(value,portText.text.toString())
-//                                            println("Ip: $ip")
-//                                            val socket = Socket(ip, portText.text.toString().toInt())
-//                                            Values.connectedServer = SocketEndpointInfo(text, socket)
-//                                            ClientService.serverEndpoint = SocketEndpointInfo(text, socket)
-//                                            val intent = Intent(requireContext(), ClientService::class.java)
-//                                            requireContext().startForegroundService(intent)
-//                                        }catch (e: Exception) {
-//                                            if(BuildConfig.DEBUG)e.printStackTrace()
-//                                            try {
-//                                                requireActivity().runOnUiThread { portText.error = "Wrong port or user is not online" }
-//                                            }catch (_:java.lang.Exception){}
-//                                        }
-//                                    }.start()
-//                                } else {
-//                                    editText.error = "No such user found"
-//                                }
-//                            }
-//                            .addOnFailureListener {
-//                                if(BuildConfig.DEBUG)it.printStackTrace()
-//                                editText.error = "No such user found"
-//                            }
-                        } else {
-                            //ip
-                            ClientService.serverEndpoint = EndpointInfo("",text,portText.text.toString())
-                            requireContext().startService(
-                                Intent(
-                                    requireContext(),
-                                    ClientService::class.java
-                                )
+                        val portText = onlineLookupButton.findViewById<EditText>(
+                            if (ip.text.toString().isNotBlank()) R.id.ipPort else R.id.ngrokPort
+                        )
+                        val text =
+                            if (ip.text.toString().isNotBlank()) "192.168." + ip.text.toString()
+                            else ngrokIp.text.toString() + ".ngrok.io"
+                        //ip
+                        ClientService.serverEndpoint =
+                            EndpointInfo("", text, portText.text.toString())
+                        requireContext().startService(
+                            Intent(
+                                requireContext(),
+                                ClientService::class.java
                             )
-                        }
-
+                        )
                     }
+
                     else -> {
 
                     }
@@ -176,6 +160,7 @@ class ConnectionFragment : Fragment() {
                         View.VISIBLE
                     onlineLookupButton.findViewById<LinearLayout>(R.id.btn0).visibility = View.GONE
                 }
+
                 Values.Companion.AppState.CONNECTED -> {
                     AskDialog(
                         requireActivity(),
@@ -185,6 +170,7 @@ class ConnectionFragment : Fragment() {
                             ServerService.instance?.stopSelf()
                         })
                 }
+
                 Values.Companion.AppState.WAITING -> {
                     AskDialog(
                         requireActivity(),
@@ -194,6 +180,7 @@ class ConnectionFragment : Fragment() {
                             ServerService.instance?.stopSelf()
                         })
                 }
+
                 else -> {
 
                 }
@@ -230,6 +217,7 @@ class ConnectionFragment : Fragment() {
                         View.VISIBLE
                     singleLookupButton.findViewById<LinearLayout>(R.id.btn1).visibility = View.GONE
                 }
+
                 Values.Companion.AppState.CONNECTED -> {
                     AskDialog(
                         requireActivity(),
@@ -239,6 +227,7 @@ class ConnectionFragment : Fragment() {
                             ServerService.instance?.stopSelf()
                         })
                 }
+
                 Values.Companion.AppState.WAITING -> {
                     AskDialog(
                         requireActivity(),
@@ -248,6 +237,7 @@ class ConnectionFragment : Fragment() {
                             ServerService.instance?.stopSelf()
                         })
                 }
+
                 else -> {
                     singleLookupButton.findViewById<LinearLayout>(R.id.stopLayout).visibility =
                         View.GONE
@@ -285,6 +275,7 @@ class ConnectionFragment : Fragment() {
                         View.VISIBLE
                     multiLookupButton.findViewById<LinearLayout>(R.id.btn2).visibility = View.GONE
                 }
+
                 Values.Companion.AppState.CONNECTED -> {
                     AskDialog(
                         requireActivity(),
@@ -294,6 +285,7 @@ class ConnectionFragment : Fragment() {
                             ServerService.instance?.stopSelf()
                         })
                 }
+
                 Values.Companion.AppState.WAITING -> {
                     AskDialog(
                         requireActivity(),
@@ -303,6 +295,7 @@ class ConnectionFragment : Fragment() {
                             ServerService.instance?.stopSelf()
                         })
                 }
+
                 else -> {
                     multiLookupButton.findViewById<LinearLayout>(R.id.stopLayout2).visibility =
                         View.GONE
@@ -315,6 +308,7 @@ class ConnectionFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
+        println("onpause")
         ClientService.postNoti = values.postNotifications
     }
 
@@ -351,6 +345,7 @@ class ConnectionFragment : Fragment() {
                     } catch (_: Exception) {
                     }
                 }
+
                 Values.Companion.AppState.LOOKING -> {
                     accessCard.visibility = View.GONE
                     if (socketLookup) {
@@ -391,6 +386,7 @@ class ConnectionFragment : Fragment() {
                         )
                     }
                 }
+
                 else -> {
                     singleLookupButton.visibility = View.VISIBLE
                     multiLookupButton.visibility = View.VISIBLE
@@ -467,7 +463,7 @@ class ConnectionFragment : Fragment() {
         }
     }
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n", "ClickableViewAccessibility")
     fun initAccessCard() {
         val name = requireView().findViewById<TextView>(R.id.name)
         val hash = requireView().findViewById<TextView>(R.id.hash)
@@ -496,7 +492,7 @@ class ConnectionFragment : Fragment() {
         triggerAccess.visibility =
             if (ClientService.clientConfig.trigger) View.VISIBLE else View.GONE
         notiAccess.visibility = if (ClientService.clientConfig.noti) View.VISIBLE else View.GONE
-        val cardList = java.util.ArrayList<MaterialCardView>()
+        val cardList = ArrayList<MaterialCardView>()
         cardList.add(mediaAccess as MaterialCardView)
         cardList.add(audioAccess as MaterialCardView)
         cardList.add(triggerAccess as MaterialCardView)
@@ -513,8 +509,6 @@ class ConnectionFragment : Fragment() {
                 notiList.adapter =
                     NotificationListAdapter(requireContext(), ClientService.notificationDataList)
                 notiList.setSelectionFromTop(firstVisibleItem, topOffset)
-            } else if (values.postNotifications) {
-                postNotification(notificationData)
             }
             if (replyDialog != null) {
                 replyDialog?.newData(notificationData)
@@ -528,25 +522,78 @@ class ConnectionFragment : Fragment() {
                 network.push(NotificationReply(reply, key))
             }
         }
+        val touchPad = requireView().findViewById<MaterialCardView>(R.id.touchpad)
+        val gestureDetector = GestureDetector(requireContext(), GestureListener())
+        touchPad.setOnTouchListener { _, event -> // Pass the motion event to the GestureDetector
+            gestureDetector.onTouchEvent(event)
+        }
+        val sensitivity = requireView().findViewById<SeekBar>(R.id.sensitivitySlider)
+        val sensText = requireView().findViewById<TextView>(R.id.currentSens)
+        sensitivity.progress = values.touchpadSensitivity.toInt()
+        sensitivity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, i: Int, b: Boolean) {
+                sensText.text = i.toString()
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                values.touchpadSensitivity = seekBar.progress
+            }
+        })
+        //buttons
+        val controlButtons = listOf<MaterialCardView>(
+            requireView().findViewById(R.id.recentsBtn),
+            requireView().findViewById(R.id.homeBtn),
+            requireView().findViewById(R.id.backBtn),
+            requireView().findViewById(R.id.notiBtn),
+            requireView().findViewById(R.id.screenshotBtn),
+            requireView().findViewById(R.id.powerBtn),
+        )
+        val controlCodes = listOf(
+            GLOBAL_ACTION_RECENTS,
+            GLOBAL_ACTION_HOME,
+            GLOBAL_ACTION_BACK,
+            GLOBAL_ACTION_NOTIFICATIONS,
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) GLOBAL_ACTION_TAKE_SCREENSHOT else 9,
+            GLOBAL_ACTION_POWER_DIALOG,
+        )
+        controlButtons.forEachIndexed { index, materialCardView ->
+            materialCardView.setOnClickListener {
+                network.push(TriggerPacket(controlCodes[index], 0f, 0f))
+            }
+        }
     }
 
-    fun postNotification(notificationData: NotificationData) {
-        val builder = Notification.Builder(
-            requireContext(),
-            Notifications(requireContext()).client_channel
-        )
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(notificationData.title)
-            .setContentText(notificationData.text)
-            .setSubText(notificationData.app_id + if (notificationData.subtext.isNullOrEmpty()) "" else " · " + notificationData.subtext)
-            .setWhen(notificationData.time)
-            .setShowWhen(true)
-        (requireContext().getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager).notify(
-            noticount,
-            builder.build()
-        )
-        noticount++
+    // Custom GestureListener to handle touch events
+    private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent): Boolean {
+            return true
+        }
+
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            println("tap")
+            network.push(TriggerPacket(-1, 0f, 0f))
+            return super.onSingleTapUp(e)
+        }
+
+        override fun onScroll(
+            e1: MotionEvent,
+            e2: MotionEvent,
+            distanceX: Float,
+            distanceY: Float
+        ): Boolean {
+            println("scroll $distanceX $distanceY")
+            network.push(
+                TriggerPacket(
+                    -1,
+                    distanceX * values.touchpadSensitivity / 100,
+                    distanceY * values.touchpadSensitivity / 100
+                )
+            )
+            return super.onScroll(e1, e2, distanceX, distanceY)
+        }
     }
+
 
     fun stopDiscover() {
         if (isAdded) {

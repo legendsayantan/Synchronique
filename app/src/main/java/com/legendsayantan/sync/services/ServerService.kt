@@ -79,26 +79,35 @@ class ServerService : Service() {
                     )
                 )
             }
-            serveDataOrWait(endpointInfo)
+            serveAudioOrWait(endpointInfo)
         } else {
             Nearby.getConnectionsClient(applicationContext)
                 .acceptConnection(endpointInfo.id, object : PayloadCallback() {
                     override fun onPayloadReceived(p0: String, p1: Payload) {
                         if (p1.type == Payload.Type.BYTES && p1.asBytes() != null) {
-                            println("--------------- PAYLOAD -----------------")
-                            println(String(p1.asBytes()!!))
                             val payloadPacket = PayloadPacket.fromEncBytes(p1.asBytes()!!)
-                            Toast.makeText(
-                                applicationContext,
-                                "payload - ${payloadPacket.payloadType}",
-                                Toast.LENGTH_SHORT
-                            ).show()
                             when (payloadPacket.payloadType) {
                                 PayloadPacket.Companion.PayloadType.DISCONNECT -> {
                                     Nearby.getConnectionsClient(applicationContext)
                                         .disconnectFromEndpoint(endpointInfo.id)
                                 }
-                                PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> {}
+                                PayloadPacket.Companion.PayloadType.TRIGGER_PACKET -> {
+                                    sendBroadcast(
+                                        Intent("${applicationContext.packageName}.control")
+                                            .putExtra(
+                                                "action",
+                                                (payloadPacket.data as TriggerPacket).action
+                                            )
+                                            .putExtra(
+                                                "x",
+                                                (payloadPacket.data as TriggerPacket).distanceX
+                                            )
+                                            .putExtra(
+                                                "y",
+                                                (payloadPacket.data as TriggerPacket).distanceY
+                                            )
+                                    )
+                                }
                                 PayloadPacket.Companion.PayloadType.NOTIFICATION_REPLY -> {
                                     NotificationListener.sendReplyTo(
                                         payloadPacket.data as NotificationReply,
@@ -152,7 +161,7 @@ class ServerService : Service() {
                         println(Values.appState)
                         Values.connectedNearbyClients.add(endpointInfo)
                         if (Values.allClients.size == 1) initialiseServe()
-                        serveDataOrWait(endpointInfo)
+                        serveAudioOrWait(endpointInfo)
                     }
                 }
                 .addOnFailureListener {
@@ -164,21 +173,24 @@ class ServerService : Service() {
                     it.printStackTrace()
                 }
         }
-
+        if(serverConfig.clientConfig.trigger){
+            ControlViaAccessibility.onStart()
+        }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        intent?.action?.let { mediaWorker?.onMediaAction(it) }
-        return START_STICKY
-    }
+
+
+
 
     override fun onDestroy() {
         network.disconnect()
         stopService(Intent(applicationContext, NotificationListener::class.java))
         try {
             audioWorker?.kill()
-        } catch (_: UninitializedPropertyAccessException) {
-        }
+        } catch (_: UninitializedPropertyAccessException) { }
+        try {
+            ControlViaAccessibility.onStop()
+        }catch (_: Exception) { }
         Values.appState = Values.Companion.AppState.IDLE
         super.onDestroy()
     }
@@ -215,7 +227,7 @@ class ServerService : Service() {
         }
     }
 
-    private fun serveDataOrWait(endpointInfo: EndpointInfo) {
+    private fun serveAudioOrWait(endpointInfo: EndpointInfo) {
         if (serverConfig.clientConfig.audio) {
             if(audioWorker!=null) audioWorker!!.clientele.add(endpointInfo)
             else{
@@ -230,6 +242,7 @@ class ServerService : Service() {
             }
         }
     }
+
 
 
     companion object {

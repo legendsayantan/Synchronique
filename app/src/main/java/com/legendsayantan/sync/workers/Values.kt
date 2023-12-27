@@ -16,6 +16,7 @@ import com.legendsayantan.sync.models.SocketEndpointInfo
  * @author legendsayantan
  */
 class Values(context: Context) {
+
     val prefs = context.getSharedPreferences("default", Context.MODE_PRIVATE)
     var onServerValueUpdate = {}
     var onClientValueUpdate = {}
@@ -30,6 +31,9 @@ class Values(context: Context) {
 
     fun set(key: String, value: String) {
         prefs.edit().putString(key, value).apply()
+    }
+    private fun set(key: String, value: Float) {
+        prefs.edit().putFloat(key, value).apply()
     }
 
     fun bind(
@@ -186,6 +190,13 @@ class Values(context: Context) {
         set(value) {
             set("postnotifications", value)
         }
+    var touchpadSensitivity: Int
+        get() = prefs.getInt("touchpadsensitivity", 100)
+        set(value) {
+            set("touchpadsensitivity",value)
+        }
+
+
 
     //connection channel
     val nearby_advertise = "${context.packageName}.connect"

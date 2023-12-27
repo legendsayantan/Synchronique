@@ -159,6 +159,9 @@ class HomeFragment() : Fragment() {
 
             }
             if (!isAdded) return@onUpdate
+            if(WaitForConnectionService.serverConfig==null){
+                WaitForConnectionService.serverConfig = ServerConfig(values)
+            }
             requireView().findViewById<ImageView>(R.id.imageSync).animate().alpha(
                 if (WaitForConnectionService.serverConfig!!.clientConfig.media) 1F else 0.3F
             ).setDuration(250).start()

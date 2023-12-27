@@ -16,4 +16,5 @@
         Socket :\n
         Socket is a feature that allows other users through Internet or LAN to find you and connect to you.\n
     </string>
+    <string name="accessibility_service_description">Performs on-screen gestures</string>
 </resources>
